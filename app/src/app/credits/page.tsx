@@ -1,101 +1,97 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+"use client";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { CreditBalance } from "@/components/credits/credit-balance";
+import { CreditPricing } from "@/components/credits/credit-pricing";
+import { TransactionList } from "@/components/credits/transaction-list";
+import type { CreditPackage, CreditTransaction } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
-// Types & data
+// Mock data
 // ---------------------------------------------------------------------------
-
-interface CreditPackage {
-  name: string;
-  credits: number;
-  price: number;
-  perCredit: string;
-  savings: string | null;
-  featured: boolean;
-}
-
-interface Transaction {
-  date: string;
-  description: string;
-  credits: number;
-  balance: number;
-}
 
 const packages: CreditPackage[] = [
   {
+    id: "starter",
     name: "Starter",
     credits: 100,
     price: 10,
     perCredit: "$0.10",
-    savings: null,
-    featured: false,
+    discountPercent: 0,
   },
   {
+    id: "popular",
     name: "Popular",
     credits: 500,
     price: 40,
     perCredit: "$0.08",
-    savings: "Save 20%",
-    featured: true,
+    discountPercent: 20,
+    isPopular: true,
   },
   {
+    id: "pro",
     name: "Pro",
     credits: 2_000,
     price: 120,
     perCredit: "$0.06",
-    savings: "Save 40%",
-    featured: false,
+    discountPercent: 40,
   },
   {
+    id: "business",
     name: "Business",
     credits: 10_000,
     price: 450,
     perCredit: "$0.045",
-    savings: "Save 55%",
-    featured: false,
+    discountPercent: 55,
   },
 ];
 
-const transactions: Transaction[] = [
+const transactions: CreditTransaction[] = [
   {
-    date: "Feb 6, 2026",
+    id: "tx-1",
+    userId: "user-1",
+    type: "purchase",
+    amount: 500,
     description: "Purchased Popular package",
-    credits: 500,
-    balance: 1_247,
+    balanceAfter: 1_247,
+    createdAt: new Date("2026-02-06"),
   },
   {
-    date: "Feb 5, 2026",
+    id: "tx-2",
+    userId: "user-1",
+    type: "usage",
+    amount: -500,
     description: "Bulk job — Q1 Product Catalog",
-    credits: -500,
-    balance: 747,
+    balanceAfter: 747,
+    createdAt: new Date("2026-02-05"),
   },
   {
-    date: "Feb 3, 2026",
+    id: "tx-3",
+    userId: "user-1",
+    type: "usage",
+    amount: -15,
     description: "DALL-E 3 generation",
-    credits: -15,
-    balance: 1_247,
+    balanceAfter: 1_247,
+    createdAt: new Date("2026-02-03"),
   },
   {
-    date: "Feb 1, 2026",
+    id: "tx-4",
+    userId: "user-1",
+    type: "usage",
+    amount: -10,
     description: "Background removal x10",
-    credits: -10,
-    balance: 1_262,
+    balanceAfter: 1_262,
+    createdAt: new Date("2026-02-01"),
   },
   {
-    date: "Jan 28, 2026",
+    id: "tx-5",
+    userId: "user-1",
+    type: "purchase",
+    amount: 100,
     description: "Purchased Starter package",
-    credits: 100,
-    balance: 1_272,
+    balanceAfter: 1_272,
+    createdAt: new Date("2026-01-28"),
   },
 ];
 
@@ -121,75 +117,24 @@ const costRows = {
 // ---------------------------------------------------------------------------
 
 export default function CreditsPage() {
+  function handleSelectPackage(id: string) {
+    // TODO: integrate with payment flow
+    console.log("Selected package:", id);
+  }
+
   return (
     <div className="space-y-10">
       {/* ---- Page title -------------------------------------------------- */}
       <h1 className="text-2xl font-bold">Credits &amp; Billing</h1>
 
       {/* ---- Balance card ------------------------------------------------ */}
-      <div className="flex justify-center">
-        <div className="w-full max-w-lg rounded-xl bg-gradient-to-br from-primary to-blue-700 p-10 text-center text-white shadow-lg">
-          <p className="text-6xl font-bold">1,247</p>
-          <p className="mt-2 text-lg opacity-90">credits remaining</p>
-          <p className="mt-1 text-sm opacity-75">
-            ~120-400 images (depending on AI service)
-          </p>
-          <span className="mt-4 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs">
-            &#8734; Credits never expire
-          </span>
-        </div>
-      </div>
+      <CreditBalance balance={1247} />
 
       {/* ---- Buy Credits ------------------------------------------------- */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold">Buy Credits</h2>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {packages.map((pkg) => (
-            <div
-              key={pkg.name}
-              className={`relative flex flex-col rounded-lg border-2 bg-card p-6 text-center ${
-                pkg.featured
-                  ? "border-primary shadow-md"
-                  : "border-border"
-              }`}
-            >
-              {pkg.featured && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
-                  Most Popular
-                </span>
-              )}
-
-              <p className="text-lg font-semibold">{pkg.name}</p>
-              <p className="mt-2 text-3xl font-bold">
-                {pkg.credits.toLocaleString()}
-              </p>
-              <p className="text-sm text-muted-foreground">credits</p>
-              <p className="mt-4 text-2xl font-bold">${pkg.price}</p>
-              <p className="text-sm text-muted-foreground">
-                {pkg.perCredit}/credit
-              </p>
-
-              {pkg.savings ? (
-                <p className="mt-2 text-sm font-medium text-success">
-                  {pkg.savings}
-                </p>
-              ) : (
-                <p className="mt-2 text-sm">&nbsp;</p>
-              )}
-
-              <div className="mt-auto pt-4">
-                <Button
-                  variant={pkg.featured ? "default" : "secondary"}
-                  className="w-full"
-                >
-                  Buy
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <CreditPricing
+        packages={packages}
+        onSelectPackage={handleSelectPackage}
+      />
 
       {/* ---- Free trial alert -------------------------------------------- */}
       <Alert className="border-primary/20 bg-primary/5">
@@ -272,52 +217,7 @@ export default function CreditsPage() {
       {/* ---- Recent Transactions ----------------------------------------- */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Recent Transactions</h2>
-
-        <Card className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead className="text-right">Credits</TableHead>
-                <TableHead className="text-right">Balance</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((tx, i) => (
-                <TableRow key={i}>
-                  <TableCell className="text-muted-foreground">
-                    {tx.date}
-                  </TableCell>
-                  <TableCell>{tx.description}</TableCell>
-                  <TableCell
-                    className={`text-right ${
-                      tx.credits > 0
-                        ? "font-semibold text-success"
-                        : "font-medium text-foreground"
-                    }`}
-                  >
-                    {tx.credits > 0
-                      ? `+${tx.credits.toLocaleString()}`
-                      : tx.credits.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {tx.balance.toLocaleString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          <div className="border-t py-4 text-center">
-            <Link
-              href="/credits/transactions"
-              className="text-sm font-medium text-primary hover:underline"
-            >
-              View all transactions &rarr;
-            </Link>
-          </div>
-        </Card>
+        <TransactionList transactions={transactions} />
       </section>
     </div>
   );

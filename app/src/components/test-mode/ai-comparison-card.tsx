@@ -1,0 +1,81 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Zap, Clock, Star } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { AI_SERVICE_LABELS } from "@/lib/types";
+import type { AIService, AITestResult } from "@/lib/types";
+
+interface AIComparisonCardProps {
+  result: AITestResult;
+  onSelect: (service: AIService) => void;
+  highlighted?: boolean;
+}
+
+export function AIComparisonCard({
+  result,
+  onSelect,
+  highlighted = false,
+}: AIComparisonCardProps) {
+  return (
+    <Card
+      className={cn(
+        "relative transition-shadow hover:shadow-lg",
+        highlighted && "border-2 border-primary",
+      )}
+    >
+      {result.isBestValue && (
+        <Badge className="absolute right-3 top-3 z-10">Best Value</Badge>
+      )}
+
+      <CardHeader>
+        {/* Image placeholder */}
+        <div className="aspect-square w-full rounded-md bg-muted" />
+        <CardTitle className="mt-3 text-lg">
+          {AI_SERVICE_LABELS[result.aiService]}
+        </CardTitle>
+        {result.tagline && (
+          <p className="text-sm text-muted-foreground">{result.tagline}</p>
+        )}
+      </CardHeader>
+
+      <CardContent className="space-y-3">
+        {/* Stats */}
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Zap className="h-4 w-4" />
+            Credits
+          </span>
+          <span className="font-medium">{result.creditCost}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Star className="h-4 w-4" />
+            Quality
+          </span>
+          <span className="font-medium">{result.quality}</span>
+        </div>
+
+        <div className="flex items-center justify-between text-sm">
+          <span className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="h-4 w-4" />
+            Speed
+          </span>
+          <span className="font-medium">{result.speed}</span>
+        </div>
+
+        {/* Action */}
+        <Button
+          className="mt-2 w-full"
+          variant={highlighted ? "default" : "secondary"}
+          onClick={() => onSelect(result.aiService)}
+        >
+          Use This
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}

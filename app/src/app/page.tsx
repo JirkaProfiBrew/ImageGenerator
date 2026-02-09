@@ -1,54 +1,59 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { ProjectGrid } from "@/components/dashboard/project-grid";
+import { QuickStatsCard } from "@/components/dashboard/quick-stats-card";
+import { UsageProgressBar } from "@/components/dashboard/usage-progress-bar";
+import type { Project } from "@/lib/types";
 
-const projects = [
+const projects: Project[] = [
   {
+    id: "project-1",
+    userId: "user-1",
     name: "Q1 Product Catalog",
-    slug: "project-1",
-    images: 50,
-    cost: "$12.50",
-    date: "Yesterday",
-    status: "Completed" as const,
+    mode: "enhancement",
+    aiService: "dalle3",
+    totalImages: 50,
+    totalCreditsSpent: 12.5,
+    status: "completed",
+    settings: { backgroundStyle: "white", enhancementLevel: "premium" },
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // Yesterday
   },
   {
+    id: "project-2",
+    userId: "user-1",
     name: "Summer Collection",
-    slug: "project-2",
-    images: 120,
-    cost: "$28.40",
-    date: "3 days ago",
-    status: "In Progress" as const,
+    mode: "generation",
+    aiService: "flux_pro",
+    totalImages: 120,
+    totalCreditsSpent: 28.4,
+    status: "processing",
+    settings: { style: "commercial", ratio: "1:1" },
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
   },
   {
+    id: "project-3",
+    userId: "user-1",
     name: "Holiday Promo",
-    slug: "project-3",
-    images: 35,
-    cost: "$8.75",
-    date: "1 week ago",
-    status: "Completed" as const,
+    mode: "enhancement",
+    aiService: "sd_xl",
+    totalImages: 35,
+    totalCreditsSpent: 8.75,
+    status: "completed",
+    settings: { backgroundStyle: "gradient", enhancementLevel: "basic" },
+    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
   },
   {
+    id: "project-4",
+    userId: "user-1",
     name: "Client: TechStore",
-    slug: "project-4",
-    images: 200,
-    cost: "$48.00",
-    date: "2 weeks ago",
-    status: "Completed" as const,
+    mode: "generation",
+    aiService: "dalle3",
+    totalImages: 200,
+    totalCreditsSpent: 48.0,
+    status: "completed",
+    settings: { style: "realistic", ratio: "4:3" },
+    createdAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000), // 2 weeks ago
   },
-];
-
-const stats = [
-  { value: "405", label: "Total Images" },
-  { value: "$97.65", label: "Total Spent" },
-  { value: "$0.24", label: "Avg Cost/Image" },
 ];
 
 export default function DashboardPage() {
@@ -70,78 +75,17 @@ export default function DashboardPage() {
       {/* Recent Projects */}
       <section className="space-y-4">
         <h2 className="text-xl font-semibold">Recent Projects</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <Link
-              key={project.slug}
-              href={`/results/${project.slug}`}
-              className="group"
-            >
-              <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-lg">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">
-                      {project.name}
-                    </CardTitle>
-                    <Badge
-                      className={
-                        project.status === "Completed"
-                          ? "border-transparent bg-green-100 text-green-800 hover:bg-green-100"
-                          : "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-100"
-                      }
-                    >
-                      {project.status}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Images</span>
-                    <span className="font-medium">
-                      {project.images} images
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Cost</span>
-                    <span className="font-medium">{project.cost}</span>
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t pt-4">
-                  <span className="text-xs text-muted-foreground">
-                    {project.date}
-                  </span>
-                </CardFooter>
-              </Card>
-            </Link>
-          ))}
-        </div>
+        <ProjectGrid projects={projects} />
       </section>
 
       {/* Usage card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Usage this month</CardTitle>
-            <span className="text-sm text-muted-foreground">
-              150 / 500 images
-            </span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Progress value={30} />
-        </CardContent>
-      </Card>
+      <UsageProgressBar used={150} total={500} />
 
       {/* Stats row */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        {stats.map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="pt-6 text-center">
-              <p className="text-3xl font-bold">{stat.value}</p>
-              <p className="text-sm text-muted-foreground">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
+        <QuickStatsCard title="Total Images" value="405" />
+        <QuickStatsCard title="Total Spent" value="$97.65" />
+        <QuickStatsCard title="Avg Cost/Image" value="$0.24" />
       </div>
 
       {/* View all projects link */}

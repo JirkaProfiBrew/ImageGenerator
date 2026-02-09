@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,28 +10,36 @@ import {
   CheckCircle2,
   Download,
   Grid3X3,
-  ImageIcon,
   List,
   RefreshCw,
-  Trash2,
 } from "lucide-react";
+import { ImageSelectionGrid } from "@/components/results/image-selection-grid";
+import { BulkActions } from "@/components/results/bulk-actions";
+import type { GeneratedImage } from "@/lib/types";
 
-interface Product {
-  name: string;
-  defaultChecked: boolean;
-}
-
-const products: Product[] = [
-  { name: "Blue Mug", defaultChecked: true },
-  { name: "Red T-shirt", defaultChecked: true },
-  { name: "Leather Wallet", defaultChecked: true },
-  { name: "Running Shoes", defaultChecked: false },
-  { name: "Gold Watch", defaultChecked: false },
-  { name: "Sunglasses", defaultChecked: false },
-  { name: "Backpack", defaultChecked: false },
-  { name: "Headphones", defaultChecked: false },
-  { name: "Plant Pot", defaultChecked: false },
+const productNames = [
+  "Blue Mug",
+  "Red T-shirt",
+  "Leather Wallet",
+  "Running Shoes",
+  "Gold Watch",
+  "Sunglasses",
+  "Backpack",
+  "Headphones",
+  "Plant Pot",
 ];
+
+const mockImages: GeneratedImage[] = productNames.map((name, index) => ({
+  id: `img-${index + 1}`,
+  projectId: "project-1",
+  productName: name,
+  generatedImageUrl: "",
+  aiService: "flux_pro" as const,
+  mode: "generation" as const,
+  creditsSpent: 5,
+  status: "completed" as const,
+  createdAt: new Date(),
+}));
 
 const summaryItems = [
   { label: "Total Cost", value: "$24.00" },
@@ -39,10 +48,45 @@ const summaryItems = [
   { label: "Duration", value: "11 minutes" },
 ];
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function ResultsPage({ params }: {
+export default function ResultsPage({
+  params,
+}: {
   params: { projectId: string };
 }) {
+  void params.projectId;
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([
+    "img-1",
+    "img-2",
+    "img-3",
+  ]);
+
+  const allSelected = selectedIds.length === mockImages.length;
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(mockImages.map((img) => img.id));
+    }
+  };
+
+  const handleDownload = (id: string) => {
+    console.log("Download image:", id);
+  };
+
+  const handleRegenerate = (id: string) => {
+    console.log("Regenerate image:", id);
+  };
+
+  const handleDownloadAll = () => {
+    console.log("Download all selected");
+  };
+
+  const handleRegenerateSelected = () => {
+    console.log("Regenerate selected:", selectedIds);
+  };
+
   return (
     <div className="space-y-6 pb-24">
       {/* Breadcrumb */}
@@ -95,7 +139,10 @@ export default function ResultsPage({ params }: {
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-2">
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox />
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={handleSelectAll}
+            />
             Select All
           </label>
           <select className="h-8 rounded-md border border-input bg-background px-2 text-sm">
@@ -124,52 +171,26 @@ export default function ResultsPage({ params }: {
       </div>
 
       {/* Image grid */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {products.map((product) => (
-          <div
-            key={product.name}
-            className="group relative overflow-hidden rounded-lg border bg-card transition-all hover:shadow-md"
-          >
-            {/* Checkbox overlay */}
-            <Checkbox
-              defaultChecked={product.defaultChecked}
-              className="absolute left-2 top-2 z-10"
-            />
-
-            {/* Image placeholder */}
-            <div className="flex aspect-square items-center justify-center bg-muted text-4xl text-muted-foreground">
-              <ImageIcon className="h-12 w-12" />
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between p-2">
-              <span className="text-sm font-medium">{product.name}</span>
-              <div className="flex items-center gap-0.5">
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <RefreshCw className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <ImageSelectionGrid
+        images={mockImages}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+        onDownload={handleDownload}
+        onRegenerate={handleRegenerate}
+      />
 
       {/* More indicator */}
       <p className="text-center text-sm text-muted-foreground">
         ...and 91 more
       </p>
 
-      {/* Sticky bottom bar */}
-      <div className="sticky bottom-0 z-50 flex justify-end gap-2 border-t bg-card p-4 shadow-[0_-2px_8px_rgba(0,0,0,0.06)]">
-        <Button variant="secondary">Regenerate Selected (3)</Button>
-        <Button>Download Selected</Button>
-      </div>
+      {/* Bulk actions */}
+      <BulkActions
+        selectedCount={selectedIds.length}
+        totalCount={mockImages.length}
+        onDownloadAll={handleDownloadAll}
+        onRegenerateSelected={handleRegenerateSelected}
+      />
     </div>
   );
 }
