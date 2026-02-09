@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Mode - Generation | ImageGen AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* ===== MODE TOGGLE ===== */
+    .mode-toggle {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: var(--space-lg);
+    }
+
+    .mode-toggle a {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      padding: 10px 20px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+
+    .mode-toggle a:hover {
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      text-decoration: none;
+    }
+
+    .mode-toggle a.active {
+      background: var(--primary);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .mode-toggle a.active:hover {
+      background: var(--primary-hover);
+      text-decoration: none;
+    }
+
+    /* ===== PROMPT SECTION ===== */
+    .prompt-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--space-lg);
+    }
+
+    .prompt-section .section-heading {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: var(--space-lg);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .prompt-section .section-heading .step-circle {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .prompt-textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      color: var(--text-primary);
+      resize: vertical;
+      transition: border-color 0.15s;
+      line-height: 1.6;
+    }
+
+    .prompt-textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    .prompt-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+      margin-top: var(--space-lg);
+    }
+
+    /* ===== GENERATE CTA ===== */
+    .generate-cta {
+      text-align: center;
+      margin-bottom: var(--space-2xl);
+    }
+
+    .btn-generate {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-sm);
+      padding: 16px 48px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn-generate:hover {
+      background: var(--primary-hover);
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-1px);
+    }
+
+    .generate-cost {
+      margin-top: var(--space-sm);
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== RESULTS SECTION ===== */
+    .results-section {
+      margin-bottom: var(--space-2xl);
+    }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-lg);
+    }
+
+    .results-header h2 {
+      font-size: 20px;
+      font-weight: 700;
+    }
+
+    .ai-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: all 0.15s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .ai-card.best-value {
+      border-color: var(--primary);
+      border-width: 2px;
+    }
+
+    .best-value-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      z-index: 1;
+    }
+
+    .ai-card-image {
+      aspect-ratio: 1;
+      background: var(--bg-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+    }
+
+    .ai-card-image .placeholder-icon {
+      font-size: 40px;
+      margin-bottom: var(--space-xs);
+    }
+
+    .ai-card-image .placeholder-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ai-card-body {
+      padding: var(--space-lg);
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-card-name {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: var(--space-md);
+      color: var(--text-primary);
+    }
+
+    .ai-card-stats {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+      flex: 1;
+    }
+
+    .ai-stat {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 14px;
+    }
+
+    .ai-stat-label {
+      color: var(--text-secondary);
+    }
+
+    .ai-stat-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .ai-stat-value.highlight {
+      color: var(--primary);
+    }
+
+    .ai-card-tagline {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-bottom: var(--space-md);
+      padding: var(--space-sm) var(--space-md);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+
+    .btn-use {
+      width: 100%;
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.15s;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text-primary);
+    }
+
+    .btn-use:hover {
+      background: var(--bg-secondary);
+      border-color: var(--border-dark);
+    }
+
+    .btn-use.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn-use.primary:hover {
+      background: var(--primary-hover);
+    }
+
+    /* ===== BOTTOM CTA ===== */
+    .bottom-cta {
+      text-align: center;
+      padding: var(--space-2xl) var(--space-lg);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .bottom-cta h3 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+
+    .bottom-cta p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: var(--space-lg);
+    }
+
+    .btn-bulk {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: 14px 32px;
+      background: var(--success);
+      color: white;
+      border: none;
+      border-radius: var(--radius-lg);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+    }
+
+    .btn-bulk:hover {
+      background: #059669;
+      text-decoration: none;
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    /* ===== DIVIDER LINE ===== */
+    .section-divider {
+      height: 1px;
+      background: var(--border);
+      margin: var(--space-2xl) 0;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .param-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .mode-toggle {
+        width: 100%;
+      }
+
+      .mode-toggle a {
+        flex: 1;
+        justify-content: center;
+        padding: 10px 12px;
+      }
+
+      .btn-generate {
+        width: 100%;
+        padding: 16px 24px;
+        font-size: 16px;
+      }
+
+      .ai-card-name {
+        font-size: 16px;
+      }
+
+      .results-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-sm);
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .param-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">&#9634;</div>
+          ImageGen AI
+        </div>
+        <nav class="nav">
+          <a href="index.html">Projects</a>
+          <a href="credits.html">Billing</a>
+          <a href="#">Settings</a>
+        </nav>
+        <div class="header-right">
+          <div class="credit-badge">
+            <span class="coin">&#9679;</span>
+            1,247 credits
+          </div>
+          <div class="avatar">JP</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+      <!-- Back Link -->
+      <a href="index.html" class="back-link">
+        &#8592; Back to Dashboard
+      </a>
+
+      <!-- Mode Toggle -->
+      <div class="mode-toggle">
+        <a href="test-enhancement.html">
+          &#128247; Enhancement
+        </a>
+        <a href="test-generation.html" class="active">
+          &#9998; Generation
+        </a>
+      </div>
+
+      <!-- Step 1: Describe Your Image -->
+      <section class="prompt-section">
+        <h2 class="section-heading">
+          <span class="step-circle">1</span>
+          Describe Your Image
+        </h2>
+
+        <div class="form-group">
+          <label class="form-label" for="prompt">Prompt</label>
+          <textarea
+            id="prompt"
+            class="prompt-textarea"
+            placeholder="e.g., Professional product photo of a blue ceramic coffee mug on a marble countertop, soft studio lighting, white background"
+          ></textarea>
+        </div>
+
+        <div class="param-grid">
+          <div class="form-group">
+            <label class="form-label" for="style">Style</label>
+            <select id="style" class="form-select">
+              <option value="realistic">Realistic</option>
+              <option value="artistic">Artistic</option>
+              <option value="minimalist">Minimalist</option>
+              <option value="commercial">Commercial</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="background">Background</label>
+            <select id="background" class="form-select">
+              <option value="white">White</option>
+              <option value="gradient">Gradient</option>
+              <option value="custom">Custom</option>
+              <option value="transparent">Transparent</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="aspect-ratio">Aspect Ratio</label>
+            <select id="aspect-ratio" class="form-select">
+              <option value="1:1">1:1 (Square)</option>
+              <option value="4:3">4:3</option>
+              <option value="16:9">16:9</option>
+              <option value="9:16">9:16 (Portrait)</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Generate CTA -->
+      <div class="generate-cta">
+        <button class="btn-generate" type="button">
+          &#9881; Generate 3 Variants
+        </button>
+        <p class="generate-cost">Cost: ~3-15 credits per variant</p>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- Results Section -->
+      <section class="results-section">
+        <div class="results-header">
+          <h2>Compare AI Results</h2>
+        </div>
+
+        <div class="grid grid-3">
+
+          <!-- DALL-E 3 Card -->
+          <article class="ai-card">
+            <div class="ai-card-image">
+              <div class="placeholder-content">
+                <span class="placeholder-icon">&#128444;</span>
+                <span>DALL-E 3 Output</span>
+              </div>
+            </div>
+            <div class="ai-card-body">
+              <h3 class="ai-card-name">DALL-E 3</h3>
+              <div class="ai-card-stats">
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Cost</span>
+                  <span class="ai-stat-value">15 credits</span>
+                </div>
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Quality</span>
+                  <span class="ai-stat-value highlight">Excellent</span>
+                </div>
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Speed</span>
+                  <span class="ai-stat-value">~20s</span>
+                </div>
+              </div>
+              <div class="ai-card-tagline">Best for realism</div>
+              <button class="btn-use" type="button">Use This</button>
+            </div>
+          </article>
+
+          <!-- Flux Card (Best Value) -->
+          <article class="ai-card best-value">
+            <span class="best-value-badge">Best Value</span>
+            <div class="ai-card-image">
+              <div class="placeholder-content">
+                <span class="placeholder-icon">&#128444;</span>
+                <span>Flux Output</span>
+              </div>
+            </div>
+            <div class="ai-card-body">
+              <h3 class="ai-card-name">Flux</h3>
+              <div class="ai-card-stats">
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Cost</span>
+                  <span class="ai-stat-value">10 credits</span>
+                </div>
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Quality</span>
+                  <span class="ai-stat-value highlight">Very Good</span>
+                </div>
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Speed</span>
+                  <span class="ai-stat-value">~10s</span>
+                </div>
+              </div>
+              <div class="ai-card-tagline">Best value</div>
+              <button class="btn-use primary" type="button">Use This</button>
+            </div>
+          </article>
+
+          <!-- Stable Diffusion Card -->
+          <article class="ai-card">
+            <div class="ai-card-image">
+              <div class="placeholder-content">
+                <span class="placeholder-icon">&#128444;</span>
+                <span>Stable Diffusion Output</span>
+              </div>
+            </div>
+            <div class="ai-card-body">
+              <h3 class="ai-card-name">Stable Diffusion</h3>
+              <div class="ai-card-stats">
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Cost</span>
+                  <span class="ai-stat-value">6 credits</span>
+                </div>
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Quality</span>
+                  <span class="ai-stat-value highlight">Good</span>
+                </div>
+                <div class="ai-stat">
+                  <span class="ai-stat-label">Speed</span>
+                  <span class="ai-stat-value">~15s</span>
+                </div>
+              </div>
+              <div class="ai-card-tagline">Most affordable</div>
+              <button class="btn-use" type="button">Use This</button>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- Bottom CTA -->
+      <div class="bottom-cta">
+        <h3>Satisfied? Start Bulk Generation</h3>
+        <p>Scale your chosen AI service to process hundreds of images at once.</p>
+        <a href="bulk-setup.html" class="btn-bulk">
+          &#9889; Start Bulk Generation
+        </a>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="scripts/navigation.js"></script>
+</body>
+</html>

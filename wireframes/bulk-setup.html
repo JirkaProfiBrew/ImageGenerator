@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bulk Generation Setup - ImageGen AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* ===== PAGE-SPECIFIC STYLES ===== */
+    .page-title {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: var(--space-lg);
+    }
+
+    .section {
+      margin-bottom: var(--space-lg);
+    }
+
+    .section-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: var(--space-sm);
+    }
+
+    .section-note {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-top: var(--space-xs);
+    }
+
+    /* File upload display */
+    .file-upload-display {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: var(--bg);
+      flex-wrap: wrap;
+      gap: var(--space-sm);
+    }
+
+    .file-upload-display .file-info {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .file-upload-display .file-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary-light);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .file-name {
+      font-weight: 500;
+    }
+
+    .file-meta {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* CSV Preview */
+    .csv-preview-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .csv-more-rows {
+      text-align: center;
+      padding: var(--space-md);
+      font-size: 13px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    /* Cost Estimate Card */
+    .cost-card {
+      border: 2px solid var(--primary);
+      background: var(--bg);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-md);
+    }
+
+    .cost-card:hover {
+      box-shadow: var(--shadow-lg);
+    }
+
+    .cost-card-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: var(--space-md);
+    }
+
+    .cost-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-sm) 0;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .cost-line .value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .cost-line.total {
+      border-top: 2px solid var(--border);
+      margin-top: var(--space-sm);
+      padding-top: var(--space-md);
+    }
+
+    .cost-line.total .label {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 15px;
+    }
+
+    .cost-line.total .value {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .cost-line .value.text-success {
+      color: var(--success);
+    }
+
+    /* Confirmation */
+    .confirmation-section {
+      margin-top: var(--space-lg);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      margin-bottom: var(--space-lg);
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-primary);
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .cta-note {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: var(--space-md);
+      text-align: center;
+      max-width: 500px;
+    }
+
+    .cta-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* Responsive table */
+    @media (max-width: 768px) {
+      .page-title {
+        font-size: 22px;
+      }
+
+      .cost-card {
+        padding: var(--space-md);
+      }
+
+      .cost-line.total .value {
+        font-size: 18px;
+      }
+
+      .file-upload-display {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">&#9634;</div>
+          ImageGen AI
+        </div>
+        <nav class="nav">
+          <a href="dashboard.html" class="active">Projects</a>
+          <a href="billing.html">Billing</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-right">
+          <div class="credit-badge">
+            <span class="coin">&#9679;</span>
+            1,247 credits
+          </div>
+          <div class="avatar">JP</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+      <!-- Back link -->
+      <a href="test-enhancement.html" class="back-link">
+        &#8592; Back
+      </a>
+
+      <!-- Page title -->
+      <h1 class="page-title">Bulk Generation Setup</h1>
+
+      <!-- Selected AI -->
+      <section class="section">
+        <label class="section-label" for="ai-model-select">Selected AI Model</label>
+        <select id="ai-model-select" class="form-select" style="max-width: 400px;">
+          <option value="flux" selected>Flux</option>
+          <option value="dall-e">DALL-E 3</option>
+          <option value="midjourney">Midjourney</option>
+          <option value="stable-diffusion">Stable Diffusion XL</option>
+        </select>
+        <p class="section-note">(Based on your test results &mdash; best price/quality)</p>
+      </section>
+
+      <!-- Upload CSV -->
+      <section class="section">
+        <label class="section-label">Upload CSV</label>
+        <div class="file-upload-display">
+          <div class="file-info">
+            <div class="file-icon">&#128196;</div>
+            <div>
+              <div class="file-name">products.csv</div>
+              <div class="file-meta">100 rows</div>
+            </div>
+          </div>
+          <a href="#" class="btn btn-sm btn-secondary">Change file</a>
+        </div>
+        <p class="section-note">
+          <a href="#">Download CSV template</a>
+        </p>
+      </section>
+
+      <!-- CSV Preview Table -->
+      <section class="section">
+        <h2 class="section-label">CSV Preview</h2>
+        <div class="card" style="padding: 0; overflow: hidden;">
+          <div class="csv-preview-wrapper">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>product_name</th>
+                  <th>description</th>
+                  <th>background</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Blue Mug</td>
+                  <td>Ceramic coffee mug...</td>
+                  <td>White studio</td>
+                </tr>
+                <tr>
+                  <td>Red T-shirt</td>
+                  <td>Cotton casual tee...</td>
+                  <td>Gradient</td>
+                </tr>
+                <tr>
+                  <td>Leather Wallet</td>
+                  <td>Premium brown leather...</td>
+                  <td>Marble surface</td>
+                </tr>
+                <tr>
+                  <td>Running Shoes</td>
+                  <td>Lightweight mesh...</td>
+                  <td>Outdoor path</td>
+                </tr>
+                <tr>
+                  <td>Gold Watch</td>
+                  <td>Luxury timepiece...</td>
+                  <td>Dark velvet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="csv-more-rows">...and 95 more rows</div>
+        </div>
+      </section>
+
+      <!-- Cost Estimate Card -->
+      <section class="section">
+        <div class="cost-card">
+          <h2 class="cost-card-title">Cost Estimate</h2>
+          <div class="cost-line">
+            <span class="label">Breakdown</span>
+            <span class="value">100 images x 5 credits = 500 credits</span>
+          </div>
+          <div class="cost-line total">
+            <span class="label">Dollar amount</span>
+            <span class="value">$24.00</span>
+          </div>
+          <div class="cost-line">
+            <span class="label">Estimated time</span>
+            <span class="value">8-12 minutes</span>
+          </div>
+          <div class="cost-line">
+            <span class="label">Current balance</span>
+            <span class="value text-success">1,247 credits</span>
+          </div>
+          <div class="cost-line">
+            <span class="label">After job</span>
+            <span class="value">747 credits remaining</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Confirmation -->
+      <section class="confirmation-section">
+        <label class="checkbox-row" for="confirm-checkbox">
+          <input type="checkbox" id="confirm-checkbox">
+          <span>I confirm and want to start generation</span>
+        </label>
+
+        <div class="cta-wrapper">
+          <button
+            type="button"
+            class="btn btn-primary btn-lg"
+            id="start-generating-btn"
+            disabled
+            data-navigate="progress.html"
+          >
+            Start Generating
+          </button>
+          <p class="cta-note">
+            Credits will be deducted as images are generated. Ungenerated images will be refunded if cancelled.
+          </p>
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <script src="scripts/navigation.js"></script>
+  <script>
+    // Enable / disable the CTA based on confirmation checkbox
+    (function() {
+      var checkbox = document.getElementById('confirm-checkbox');
+      var btn = document.getElementById('start-generating-btn');
+
+      checkbox.addEventListener('change', function() {
+        btn.disabled = !checkbox.checked;
+      });
+
+      btn.addEventListener('click', function(e) {
+        if (!btn.disabled) {
+          window.location.href = 'progress.html';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

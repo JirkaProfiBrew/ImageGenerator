@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generation Progress - ImageGen AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* ===== PROGRESS PAGE SPECIFIC ===== */
+
+    .page-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: var(--space-lg);
+    }
+
+    /* Large progress bar */
+    .progress-section {
+      margin-bottom: var(--space-lg);
+    }
+
+    .progress-bar-lg {
+      width: 100%;
+      background: var(--border);
+      border-radius: var(--radius-full);
+      height: 20px;
+      overflow: hidden;
+      margin-bottom: var(--space-md);
+    }
+
+    .progress-bar-lg .progress-fill {
+      height: 100%;
+      width: 42%;
+      background: var(--primary);
+      border-radius: var(--radius-full);
+      transition: width 0.5s ease;
+      position: relative;
+    }
+
+    .progress-bar-lg .progress-fill::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.25),
+        transparent
+      );
+      animation: progressShine 2s infinite;
+    }
+
+    @keyframes progressShine {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+
+    .progress-details {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-sm);
+    }
+
+    .progress-count {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .progress-meta {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    .progress-service {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: var(--space-xs);
+      width: 100%;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .cancel-note {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Live preview grid */
+    .preview-section {
+      margin-bottom: var(--space-lg);
+    }
+
+    .preview-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+
+    .preview-title {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--error);
+      border-radius: 50%;
+      animation: livePulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-md);
+    }
+
+    .preview-item {
+      aspect-ratio: 1;
+      border-radius: var(--radius-md);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    /* Completed image placeholder */
+    .preview-item.completed {
+      background: var(--bg-secondary);
+    }
+
+    .preview-item.completed .placeholder-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #E0E7FF 0%, #DBEAFE 50%, #E0F2FE 100%);
+    }
+
+    .preview-item.completed .placeholder-icon {
+      font-size: 24px;
+      color: var(--text-muted);
+    }
+
+    .preview-item.completed .check-overlay {
+      position: absolute;
+      top: var(--space-sm);
+      right: var(--space-sm);
+      width: 24px;
+      height: 24px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* In-progress image placeholder with shimmer */
+    .preview-item.in-progress {
+      background: var(--bg-secondary);
+    }
+
+    .preview-item.in-progress .placeholder-inner {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: var(--space-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .preview-item.in-progress .placeholder-inner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(37, 99, 235, 0.06),
+        rgba(37, 99, 235, 0.1),
+        rgba(37, 99, 235, 0.06),
+        transparent
+      );
+      animation: shimmer 2s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0% { left: -100%; }
+      100% { left: 100%; }
+    }
+
+    .preview-item.in-progress .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .preview-item.in-progress .loading-text {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .preview-counter {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Stats row */
+    .stats-row {
+      display: flex;
+      gap: var(--space-lg);
+      flex-wrap: wrap;
+      margin-bottom: var(--space-lg);
+    }
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .stat-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .stat-dot.green { background: var(--success); }
+    .stat-dot.red { background: var(--error); }
+    .stat-dot.gray { background: var(--text-muted); }
+
+    .stat-label {
+      color: var(--text-secondary);
+    }
+
+    .stat-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .stat-value.green { color: var(--success); }
+    .stat-value.red { color: var(--error); }
+    .stat-value.gray { color: var(--text-muted); }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .page-title {
+        font-size: 20px;
+      }
+
+      .preview-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .progress-details {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .controls .btn {
+        text-align: center;
+      }
+
+      .stats-row {
+        flex-direction: column;
+        gap: var(--space-sm);
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .preview-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">&#9638;</div>
+          ImageGen AI
+        </div>
+        <nav class="nav">
+          <a href="dashboard.html" class="active">Projects</a>
+          <a href="billing.html">Billing</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-right">
+          <div class="credit-badge">
+            <span class="coin">&#9679;</span>
+            1,247 credits
+          </div>
+          <div class="avatar">JP</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="main-content">
+
+      <!-- Back link -->
+      <a href="dashboard.html" class="back-link">&larr; Back to Projects</a>
+
+      <!-- Page title -->
+      <h1 class="page-title">Generating 100 images...</h1>
+
+      <!-- Progress bar section -->
+      <section class="card progress-section">
+        <div class="progress-bar-lg" role="progressbar" aria-valuenow="42" aria-valuemin="0" aria-valuemax="100" aria-label="Image generation progress">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="progress-details">
+          <span class="progress-count">42/100 (42%)</span>
+          <span class="progress-meta">Estimated time remaining: 6 minutes</span>
+          <span class="progress-service">AI Service: Flux | Speed: ~5s per image</span>
+        </div>
+      </section>
+
+      <!-- Controls -->
+      <div class="controls">
+        <button class="btn btn-danger" data-navigate="dashboard.html">
+          &#10005; Cancel Job
+        </button>
+        <span class="cancel-note">Ungenerated images will be refunded</span>
+        <button class="btn btn-secondary">
+          &#10074;&#10074; Pause
+        </button>
+      </div>
+
+      <!-- Live preview grid -->
+      <section class="preview-section">
+        <div class="preview-header">
+          <div class="preview-title">
+            <span class="live-dot" aria-hidden="true"></span>
+            Generated Images (live update)
+          </div>
+        </div>
+
+        <div class="preview-grid" role="list" aria-label="Generated images preview">
+
+          <!-- Completed images (1-8) -->
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+          <div class="preview-item completed" role="listitem">
+            <div class="placeholder-inner">
+              <span class="placeholder-icon">&#128444;</span>
+            </div>
+            <div class="check-overlay" aria-label="Completed">&#10003;</div>
+          </div>
+
+          <!-- In-progress images (9-12) -->
+          <div class="preview-item in-progress" role="listitem">
+            <div class="placeholder-inner">
+              <div class="spinner" aria-hidden="true"></div>
+              <span class="loading-text">Generating...</span>
+            </div>
+          </div>
+          <div class="preview-item in-progress" role="listitem">
+            <div class="placeholder-inner">
+              <div class="spinner" aria-hidden="true"></div>
+              <span class="loading-text">Generating...</span>
+            </div>
+          </div>
+          <div class="preview-item in-progress" role="listitem">
+            <div class="placeholder-inner">
+              <div class="spinner" aria-hidden="true"></div>
+              <span class="loading-text">Generating...</span>
+            </div>
+          </div>
+          <div class="preview-item in-progress" role="listitem">
+            <div class="placeholder-inner">
+              <div class="spinner" aria-hidden="true"></div>
+              <span class="loading-text">Generating...</span>
+            </div>
+          </div>
+
+        </div>
+
+        <p class="preview-counter">42 of 100 images generated...</p>
+      </section>
+
+      <!-- Stats row -->
+      <section class="card" aria-label="Generation statistics">
+        <div class="stats-row">
+          <div class="stat-item">
+            <span class="stat-dot green" aria-hidden="true"></span>
+            <span class="stat-label">Successful:</span>
+            <span class="stat-value green">40</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-dot red" aria-hidden="true"></span>
+            <span class="stat-label">Failed:</span>
+            <span class="stat-value red">2</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-dot gray" aria-hidden="true"></span>
+            <span class="stat-label">Remaining:</span>
+            <span class="stat-value gray">58</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Failed images alert -->
+      <div class="alert alert-warning mt-md" role="alert">
+        <span aria-hidden="true">&#9888;</span>
+        <span>2 images failed to generate. They will be automatically retried.</span>
+      </div>
+
+    </main>
+
+  </div>
+
+  <script src="scripts/navigation.js"></script>
+</body>
+</html>

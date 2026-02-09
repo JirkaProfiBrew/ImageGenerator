@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - ImageGen AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* Dashboard CTA Buttons */
+    .dashboard-actions {
+      display: flex;
+      gap: var(--space-md);
+      margin-bottom: var(--space-xl);
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-actions {
+        flex-direction: column;
+      }
+
+      .dashboard-actions .btn {
+        width: 100%;
+      }
+    }
+
+    /* Project Cards */
+    .project-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+      display: block;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .project-card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .project-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+
+    .project-card-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .project-card-details {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+
+    .project-card-detail {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .project-card-detail-label {
+      color: var(--text-secondary);
+    }
+
+    .project-card-detail-value {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .project-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: var(--space-md);
+      padding-top: var(--space-md);
+      border-top: 1px solid var(--border);
+    }
+
+    .project-card-date {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Usage Section */
+    .usage-section {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      margin-top: var(--space-xl);
+    }
+
+    .usage-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-md);
+    }
+
+    .usage-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .usage-count {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    /* Stat Cards */
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: var(--space-lg);
+      box-shadow: var(--shadow-sm);
+      text-align: center;
+    }
+
+    .stat-card-value {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: var(--space-xs);
+    }
+
+    .stat-card-label {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* View All Link */
+    .view-all-container {
+      text-align: center;
+      margin-top: var(--space-xl);
+    }
+
+    .view-all-link {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-xs);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--primary);
+    }
+
+    .view-all-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">&#9638;</div>
+          ImageGen AI
+        </div>
+        <nav class="nav">
+          <a href="index.html" class="active">Projects</a>
+          <a href="credits.html">Billing</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-right">
+          <a href="credits.html" class="credit-badge">
+            <span class="coin">&#9679;</span>
+            1,247 credits
+          </a>
+          <div class="avatar">JP</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Page Title -->
+      <h1 class="section-title mb-lg">Projects</h1>
+
+      <!-- CTA Buttons -->
+      <div class="dashboard-actions">
+        <a href="test-enhancement.html" class="btn btn-primary btn-lg">+ New Project</a>
+        <a href="bulk-setup.html" class="btn btn-secondary btn-lg">Upload CSV</a>
+      </div>
+
+      <!-- Recent Projects -->
+      <section aria-labelledby="recent-projects-title">
+        <h2 id="recent-projects-title" class="section-title">Recent Projects</h2>
+        <div class="grid grid-3">
+          <!-- Project 1 -->
+          <a href="results.html" class="project-card">
+            <div class="project-card-header">
+              <span class="project-card-name">Q1 Product Catalog</span>
+              <span class="badge badge-success">Completed</span>
+            </div>
+            <div class="project-card-details">
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Images</span>
+                <span class="project-card-detail-value">50 images</span>
+              </div>
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Cost</span>
+                <span class="project-card-detail-value">$12.50</span>
+              </div>
+            </div>
+            <div class="project-card-footer">
+              <span class="project-card-date">Yesterday</span>
+            </div>
+          </a>
+
+          <!-- Project 2 -->
+          <a href="results.html" class="project-card">
+            <div class="project-card-header">
+              <span class="project-card-name">Summer Collection</span>
+              <span class="badge badge-primary">In Progress</span>
+            </div>
+            <div class="project-card-details">
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Images</span>
+                <span class="project-card-detail-value">120 images</span>
+              </div>
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Cost</span>
+                <span class="project-card-detail-value">$28.40</span>
+              </div>
+            </div>
+            <div class="project-card-footer">
+              <span class="project-card-date">3 days ago</span>
+            </div>
+          </a>
+
+          <!-- Project 3 -->
+          <a href="results.html" class="project-card">
+            <div class="project-card-header">
+              <span class="project-card-name">Holiday Promo</span>
+              <span class="badge badge-success">Completed</span>
+            </div>
+            <div class="project-card-details">
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Images</span>
+                <span class="project-card-detail-value">35 images</span>
+              </div>
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Cost</span>
+                <span class="project-card-detail-value">$8.75</span>
+              </div>
+            </div>
+            <div class="project-card-footer">
+              <span class="project-card-date">1 week ago</span>
+            </div>
+          </a>
+
+          <!-- Project 4 -->
+          <a href="results.html" class="project-card">
+            <div class="project-card-header">
+              <span class="project-card-name">Client: TechStore</span>
+              <span class="badge badge-success">Completed</span>
+            </div>
+            <div class="project-card-details">
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Images</span>
+                <span class="project-card-detail-value">200 images</span>
+              </div>
+              <div class="project-card-detail">
+                <span class="project-card-detail-label">Cost</span>
+                <span class="project-card-detail-value">$48.00</span>
+              </div>
+            </div>
+            <div class="project-card-footer">
+              <span class="project-card-date">2 weeks ago</span>
+            </div>
+          </a>
+        </div>
+      </section>
+
+      <!-- Usage Summary -->
+      <section class="usage-section" aria-labelledby="usage-title">
+        <div class="usage-header">
+          <h2 id="usage-title" class="usage-title">Usage this month</h2>
+          <span class="usage-count">150 / 500 images</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" style="width: 30%;"></div>
+        </div>
+      </section>
+
+      <!-- Quick Stats -->
+      <section class="mt-lg" aria-labelledby="stats-title">
+        <h2 id="stats-title" class="sr-only">Quick Stats</h2>
+        <div class="grid grid-3">
+          <div class="stat-card">
+            <div class="stat-card-value">405</div>
+            <div class="stat-card-label">Total Images</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-value">$97.65</div>
+            <div class="stat-card-label">Total Spent</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-value">$0.24</div>
+            <div class="stat-card-label">Avg Cost/Image</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- View All Projects Link -->
+      <div class="view-all-container">
+        <a href="#" class="view-all-link">
+          View all projects &#8594;
+        </a>
+      </div>
+    </main>
+  </div>
+
+  <script src="scripts/navigation.js"></script>
+</body>
+</html>

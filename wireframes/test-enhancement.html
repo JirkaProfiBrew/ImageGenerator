@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Enhancement - ImageGen AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles/main.css">
+  <style>
+    /* Mode Toggle Tabs */
+    .mode-toggle {
+      display: inline-flex;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      margin-bottom: var(--space-xl);
+    }
+
+    .mode-toggle a {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.15s;
+      border: none;
+      cursor: pointer;
+    }
+
+    .mode-toggle a:hover {
+      color: var(--text-primary);
+      background: var(--bg-secondary);
+      text-decoration: none;
+    }
+
+    .mode-toggle a.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .mode-toggle a.active:hover {
+      background: var(--primary-hover);
+    }
+
+    /* Step Sections */
+    .step-section {
+      margin-bottom: var(--space-xl);
+    }
+
+    .step-label {
+      display: inline-flex;
+      align-items: center;
+      gap: var(--space-sm);
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--primary);
+      margin-bottom: var(--space-sm);
+    }
+
+    .step-label .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .step-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: var(--space-md);
+    }
+
+    /* Options Grid */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+    }
+
+    @media (max-width: 768px) {
+      .options-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 769px) and (max-width: 1024px) {
+      .options-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    /* CTA Section */
+    .cta-section {
+      text-align: center;
+      padding: var(--space-xl) 0;
+    }
+
+    .cta-section .btn-lg {
+      min-width: 280px;
+    }
+
+    .cta-cost {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: var(--space-sm);
+    }
+
+    /* Results Section */
+    .results-section {
+      margin-top: var(--space-xl);
+      padding-top: var(--space-xl);
+      border-top: 1px solid var(--border);
+    }
+
+    /* AI Result Card */
+    .ai-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.15s;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .ai-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .ai-card.highlighted {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary-light), var(--shadow-md);
+    }
+
+    .ai-card-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--primary);
+      color: white;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      z-index: 1;
+    }
+
+    .ai-card-image {
+      width: 100%;
+      aspect-ratio: 1;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      flex-direction: column;
+      gap: var(--space-sm);
+    }
+
+    .ai-card-image .placeholder-icon {
+      font-size: 36px;
+      opacity: 0.5;
+    }
+
+    .ai-card-body {
+      padding: var(--space-md);
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .ai-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: var(--space-sm);
+    }
+
+    .ai-card-meta {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      margin-bottom: var(--space-md);
+      flex: 1;
+    }
+
+    .ai-card-meta-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .ai-card-meta-label {
+      color: var(--text-secondary);
+    }
+
+    .ai-card-meta-value {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .ai-card-meta-value.price {
+      color: var(--primary);
+    }
+
+    .ai-card-actions {
+      padding: 0 var(--space-md) var(--space-md);
+    }
+
+    .ai-card-actions .btn {
+      width: 100%;
+    }
+
+    /* Bottom CTA */
+    .bottom-cta {
+      text-align: center;
+      margin-top: var(--space-2xl);
+      padding: var(--space-xl);
+      background: var(--primary-light);
+      border-radius: var(--radius-lg);
+      border: 1px solid #93C5FD;
+    }
+
+    .bottom-cta p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: var(--space-md);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-wrapper">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="logo">
+          <div class="logo-icon">&#9638;</div>
+          ImageGen AI
+        </div>
+        <nav class="nav">
+          <a href="index.html">Projects</a>
+          <a href="billing.html">Billing</a>
+          <a href="settings.html">Settings</a>
+        </nav>
+        <div class="header-right">
+          <div class="credit-badge">
+            <span class="coin">&#9679;</span>
+            1,247 credits
+          </div>
+          <div class="avatar">JP</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Back Link -->
+      <a href="index.html" class="back-link">
+        &#8592; Back to Dashboard
+      </a>
+
+      <!-- Mode Toggle -->
+      <div class="mode-toggle">
+        <a href="test-enhancement.html" class="active">Enhancement</a>
+        <a href="test-generation.html">Generation</a>
+      </div>
+
+      <!-- Step 1: Upload -->
+      <section class="step-section" aria-labelledby="step1-title">
+        <div class="step-label">
+          <span class="step-num">1</span>
+          Step 1
+        </div>
+        <h2 id="step1-title" class="step-title">Upload Product Image</h2>
+        <div class="upload-zone">
+          <div class="icon">&#9729;</div>
+          <div class="title">Drag &amp; drop or click to upload</div>
+          <div class="subtitle">PNG, JPG up to 10MB</div>
+        </div>
+      </section>
+
+      <!-- Step 2: Enhancement Options -->
+      <section class="step-section" aria-labelledby="step2-title">
+        <div class="step-label">
+          <span class="step-num">2</span>
+          Step 2
+        </div>
+        <h2 id="step2-title" class="step-title">Enhancement Options</h2>
+        <div class="options-grid">
+          <div class="form-group">
+            <label for="operation" class="form-label">Operation</label>
+            <select id="operation" class="form-select">
+              <option value="background-replacement">Background Replacement</option>
+              <option value="enhancement-basic">Enhancement Basic</option>
+              <option value="enhancement-premium">Enhancement Premium</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="bg-description" class="form-label">Background description</label>
+            <input type="text" id="bg-description" class="form-input" placeholder="e.g., Clean white studio background">
+          </div>
+          <div class="form-group">
+            <label for="output-ratio" class="form-label">Output Ratio</label>
+            <select id="output-ratio" class="form-select">
+              <option value="1:1">1:1</option>
+              <option value="4:3">4:3</option>
+              <option value="16:9">16:9</option>
+              <option value="original">Original</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Generate CTA -->
+      <div class="cta-section">
+        <button type="button" class="btn btn-primary btn-lg">Generate 3 Variants</button>
+        <p class="cta-cost">Cost: ~3-8 credits per variant</p>
+      </div>
+
+      <!-- Results Section -->
+      <section class="results-section" aria-labelledby="results-title">
+        <h2 id="results-title" class="section-title">Compare AI Results</h2>
+
+        <div class="grid grid-3">
+          <!-- DALL-E 3 Card -->
+          <article class="ai-card">
+            <div class="ai-card-image">
+              <span class="placeholder-icon">&#128444;</span>
+              <span>AI-generated preview</span>
+            </div>
+            <div class="ai-card-body">
+              <h3 class="ai-card-name">DALL-E 3</h3>
+              <div class="ai-card-meta">
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Cost</span>
+                  <span class="ai-card-meta-value price">8 credits</span>
+                </div>
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Quality</span>
+                  <span class="ai-card-meta-value">Excellent</span>
+                </div>
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Speed</span>
+                  <span class="ai-card-meta-value">~15s</span>
+                </div>
+              </div>
+            </div>
+            <div class="ai-card-actions">
+              <button type="button" class="btn btn-secondary">Use This</button>
+            </div>
+          </article>
+
+          <!-- Flux Card (Best Value) -->
+          <article class="ai-card highlighted">
+            <span class="ai-card-badge">Best Value</span>
+            <div class="ai-card-image">
+              <span class="placeholder-icon">&#128444;</span>
+              <span>AI-generated preview</span>
+            </div>
+            <div class="ai-card-body">
+              <h3 class="ai-card-name">Flux</h3>
+              <div class="ai-card-meta">
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Cost</span>
+                  <span class="ai-card-meta-value price">5 credits</span>
+                </div>
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Quality</span>
+                  <span class="ai-card-meta-value">Very Good</span>
+                </div>
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Speed</span>
+                  <span class="ai-card-meta-value">~8s</span>
+                </div>
+              </div>
+            </div>
+            <div class="ai-card-actions">
+              <button type="button" class="btn btn-primary">Use This</button>
+            </div>
+          </article>
+
+          <!-- Stable Diffusion Card -->
+          <article class="ai-card">
+            <div class="ai-card-image">
+              <span class="placeholder-icon">&#128444;</span>
+              <span>AI-generated preview</span>
+            </div>
+            <div class="ai-card-body">
+              <h3 class="ai-card-name">Stable Diffusion</h3>
+              <div class="ai-card-meta">
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Cost</span>
+                  <span class="ai-card-meta-value price">3 credits</span>
+                </div>
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Quality</span>
+                  <span class="ai-card-meta-value">Good</span>
+                </div>
+                <div class="ai-card-meta-row">
+                  <span class="ai-card-meta-label">Speed</span>
+                  <span class="ai-card-meta-value">~12s</span>
+                </div>
+              </div>
+            </div>
+            <div class="ai-card-actions">
+              <button type="button" class="btn btn-secondary">Use This</button>
+            </div>
+          </article>
+        </div>
+
+        <!-- Bottom CTA -->
+        <div class="bottom-cta">
+          <p>Satisfied with the results? Scale up to process your entire catalog.</p>
+          <a href="bulk-setup.html" class="btn btn-primary btn-lg">Satisfied? Start Bulk Enhancement</a>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="scripts/navigation.js"></script>
+</body>
+</html>
