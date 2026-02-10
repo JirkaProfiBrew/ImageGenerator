@@ -25,29 +25,36 @@ import {
 
 const mockResults: AITestResult[] = [
   {
-    aiService: "dalle3",
+    aiService: "openai_dalle3",
+    displayName: "DALL-E 3",
     imageUrl: "",
     creditCost: 8,
     quality: "Excellent",
     speed: "~15s",
+    generationTime: 15,
     tagline: "Best for realism",
   },
   {
-    aiService: "flux_pro",
+    aiService: "replicate_flux",
+    displayName: "Flux Pro",
     imageUrl: "",
     creditCost: 5,
     quality: "Excellent",
     speed: "~10s",
+    generationTime: 10,
     isBestValue: true,
+    recommended: true,
     tagline: "Best value",
   },
   {
-    aiService: "sd_xl",
+    aiService: "google_nano_banana",
+    displayName: "Nano Banana Pro",
     imageUrl: "",
     creditCost: 3,
     quality: "Good",
     speed: "~12s",
-    tagline: "Most affordable",
+    generationTime: 12,
+    tagline: "Google Gemini",
   },
 ];
 

@@ -34,7 +34,7 @@ const mockImages: GeneratedImage[] = productNames.map((name, index) => ({
   projectId: "project-1",
   productName: name,
   generatedImageUrl: "",
-  aiService: "flux_pro" as const,
+  aiService: "replicate_flux" as const,
   mode: "generation" as const,
   creditsSpent: 5,
   status: "completed" as const,

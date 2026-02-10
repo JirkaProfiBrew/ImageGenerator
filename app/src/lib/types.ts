@@ -3,14 +3,14 @@
 // ============================================================================
 
 // --- AI Services ---
-export type AIService = "dalle3" | "flux_pro" | "sd_xl";
+export type AIService = "openai_dalle3" | "replicate_flux" | "google_nano_banana";
 
-export type AIServiceLabel = "DALL-E 3" | "Flux" | "Stable Diffusion";
+export type AIServiceLabel = "DALL-E 3" | "Flux Pro" | "Nano Banana Pro";
 
 export const AI_SERVICE_LABELS: Record<AIService, AIServiceLabel> = {
-  dalle3: "DALL-E 3",
-  flux_pro: "Flux",
-  sd_xl: "Stable Diffusion",
+  openai_dalle3: "DALL-E 3",
+  replicate_flux: "Flux Pro",
+  google_nano_banana: "Nano Banana Pro",
 };
 
 // --- Mode ---
@@ -97,10 +97,13 @@ export type QualityRating = "Excellent" | "Very Good" | "Good";
 
 export interface AITestResult {
   aiService: AIService;
+  displayName: string;
   imageUrl: string;
   creditCost: number;
   quality: QualityRating;
   speed: string;
+  generationTime?: number;
+  recommended?: boolean;
   tagline?: string;
   isBestValue?: boolean;
 }

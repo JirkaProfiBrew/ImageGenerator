@@ -16,7 +16,7 @@ interface AIServiceSelectorProps {
   testResults?: AITestResult[];
 }
 
-const AI_SERVICE_OPTIONS: AIService[] = ["dalle3", "flux_pro", "sd_xl"];
+const AI_SERVICE_OPTIONS: AIService[] = ["openai_dalle3", "replicate_flux", "google_nano_banana"];
 
 export function AIServiceSelector({
   value,

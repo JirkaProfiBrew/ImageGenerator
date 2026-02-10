@@ -50,7 +50,7 @@ export const generationParamsSchema = z.object({
 
 // --- Bulk Upload ---
 export const bulkUploadSchema = z.object({
-  aiService: z.enum(["dalle3", "flux_pro", "sd_xl"]),
+  aiService: z.enum(["openai_dalle3", "replicate_flux", "google_nano_banana"]),
   confirmed: z.literal(true, {
     message: "You must confirm before starting",
   }),

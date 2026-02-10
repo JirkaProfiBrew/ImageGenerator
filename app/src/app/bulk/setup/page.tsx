@@ -68,12 +68,12 @@ export default function BulkSetupPage() {
   } = useForm<BulkUploadParams>({
     resolver: zodResolver(bulkUploadSchema),
     defaultValues: {
-      aiService: "flux_pro",
+      aiService: "replicate_flux",
     },
   });
 
   const confirmed = watch("confirmed");
-  const aiService = watch("aiService") ?? "flux_pro";
+  const aiService = watch("aiService") ?? "replicate_flux";
 
   const onSubmit = (data: BulkUploadParams) => {
     console.log("Starting bulk generation:", data);
