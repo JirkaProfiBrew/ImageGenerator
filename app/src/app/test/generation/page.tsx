@@ -22,43 +22,11 @@ import {
   type GenerationParams,
 } from "@/lib/validations";
 
-const mockResults: AITestResult[] = [
-  {
-    aiService: "openai_dalle3",
-    displayName: "DALL-E 3",
-    imageUrl: "",
-    creditCost: 15,
-    quality: "Excellent",
-    speed: "~20s",
-    generationTime: 20,
-    tagline: "Best for realism",
-  },
-  {
-    aiService: "replicate_flux",
-    displayName: "Flux Pro",
-    imageUrl: "",
-    creditCost: 10,
-    quality: "Very Good",
-    speed: "~10s",
-    generationTime: 10,
-    isBestValue: true,
-    recommended: true,
-    tagline: "Best value",
-  },
-  {
-    aiService: "google_nano_banana",
-    displayName: "Nano Banana Pro",
-    imageUrl: "",
-    creditCost: 6,
-    quality: "Good",
-    speed: "~15s",
-    generationTime: 15,
-    tagline: "Google Gemini",
-  },
-];
-
 export default function TestGenerationPage() {
   const [params, setParams] = useState<ParameterPanelProps["values"]>({});
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<AITestResult[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const {
     handleSubmit,
@@ -93,8 +61,40 @@ export default function TestGenerationPage() {
     console.log("Selected AI service:", service);
   };
 
-  const onSubmit = (data: GenerationParams) => {
-    console.log("Generating with params:", data);
+  const onSubmit = async (data: GenerationParams) => {
+    console.log("Starting generation with:", data);
+    setLoading(true);
+    setError(null);
+    setResults(null);
+
+    try {
+      const response = await fetch("/api/test/generation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: data.prompt,
+          style: data.style,
+          backgroundType: data.backgroundType,
+          ratio: data.ratio,
+        }),
+      });
+
+      const json = await response.json();
+      console.log("API response:", json);
+
+      if (!json.success) {
+        throw new Error(json.error || "Generation failed");
+      }
+
+      setResults(json.results);
+    } catch (err) {
+      console.error("Generation error:", err);
+      const message =
+        err instanceof Error ? err.message : "Failed to generate images";
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -144,39 +144,60 @@ export default function TestGenerationPage() {
 
         {/* CTA */}
         <div className="flex flex-col items-center gap-2">
-          <Button type="submit" size="lg" className="px-10 text-base">
-            Generate 3 Variants
+          <Button
+            type="submit"
+            size="lg"
+            className="px-10 text-base"
+            disabled={loading}
+          >
+            {loading ? "Generating..." : "Generate 3 Variants"}
           </Button>
-          <p className="text-sm text-muted-foreground">
-            Cost: ~3-15 credits per variant
-          </p>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">
+              This may take 20-30 seconds...
+            </p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Cost: ~3-15 credits per variant
+            </p>
+          )}
         </div>
       </form>
 
-      <Separator />
+      {/* Error display */}
+      {error && (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+          Error: {error}
+        </div>
+      )}
 
       {/* Results section */}
-      <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Compare AI Results</h2>
-        <AIComparisonGrid results={mockResults} onSelectAI={handleSelectAI} />
-      </div>
+      {results && results.length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold">Compare AI Results</h2>
+            <AIComparisonGrid results={results} onSelectAI={handleSelectAI} />
+          </div>
 
-      {/* Bottom CTA */}
-      <div className="rounded-lg border bg-card p-10 text-center space-y-4">
-        <h3 className="text-xl font-semibold">
-          Satisfied? Start Bulk Generation
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          Scale your chosen model across all your products with a single click.
-        </p>
-        <Button
-          asChild
-          className="bg-success text-white hover:bg-success/90"
-          size="lg"
-        >
-          <Link href="/bulk/setup">Start Bulk Generation</Link>
-        </Button>
-      </div>
+          {/* Bottom CTA */}
+          <div className="rounded-lg border bg-card p-10 text-center space-y-4">
+            <h3 className="text-xl font-semibold">
+              Satisfied? Start Bulk Generation
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              Scale your chosen model across all your products with a single click.
+            </p>
+            <Button
+              asChild
+              className="bg-success text-white hover:bg-success/90"
+              size="lg"
+            >
+              <Link href="/bulk/setup">Start Bulk Generation</Link>
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
