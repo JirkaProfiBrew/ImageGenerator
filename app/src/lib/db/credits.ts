@@ -21,14 +21,15 @@ export async function getActivePackages(): Promise<PackageRow[]> {
 
 export async function getUserTransactions(
   userId: string,
-  limit = 50
+  limit = 50,
+  offset = 0
 ): Promise<TransactionRow[]> {
   const { data } = await supabaseAdmin
     .from("credit_transactions")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(limit)
+    .range(offset, offset + limit - 1)
     .returns<TransactionRow[]>();
 
   return data ?? [];
@@ -48,6 +49,39 @@ export async function createTransaction(
   }
 
   return transaction as TransactionRow;
+}
+
+export async function deductCredits(
+  userId: string,
+  amount: number,
+  projectId: string,
+  description: string
+): Promise<TransactionRow> {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error(`User not found: ${userId}`);
+  }
+
+  if (user.credit_balance < amount) {
+    throw new Error(
+      `Insufficient credits: ${user.credit_balance} available, ${amount} required`
+    );
+  }
+
+  const balanceAfter = user.credit_balance - amount;
+
+  const transaction = await createTransaction({
+    user_id: userId,
+    type: "usage",
+    amount: -amount,
+    description,
+    balance_after: balanceAfter,
+    project_id: projectId,
+  });
+
+  await updateUserCredits(userId, balanceAfter);
+
+  return transaction;
 }
 
 export async function purchaseCredits(

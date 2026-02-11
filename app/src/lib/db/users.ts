@@ -71,6 +71,14 @@ export async function updateUserCredits(
   }
 }
 
+export async function getUserCredits(userId: string): Promise<number> {
+  const user = await getUserById(userId);
+  if (!user) {
+    throw new Error(`User not found: ${userId}`);
+  }
+  return user.credit_balance;
+}
+
 export async function updateUserPlan(
   userId: string,
   plan: UserRow["plan"]

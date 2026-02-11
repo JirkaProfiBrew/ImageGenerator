@@ -5,7 +5,7 @@ import { getActivePackages } from "@/lib/db/credits";
 export async function GET() {
   try {
     // 1. Test raw connection via credit_packages table
-    const { data: pingData, error: pingError } = await supabaseAdmin
+    const { error: pingError } = await supabaseAdmin
       .from("credit_packages")
       .select("id")
       .limit(1);
