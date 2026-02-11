@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateWithDallE3 } from "@/lib/ai/openai";
+import { generateWithFluxPro } from "@/lib/ai/replicate";
 
 export async function POST(request: Request) {
   try {
@@ -21,6 +22,14 @@ export async function POST(request: Request) {
       dalleSize = "1792x1024";
     }
 
+    // Convert ratio to Flux aspect ratio format
+    let fluxAspectRatio: "1:1" | "16:9" | "9:16" = "1:1";
+    if (ratio === "16:9") {
+      fluxAspectRatio = "16:9";
+    } else if (ratio === "9:16") {
+      fluxAspectRatio = "9:16";
+    }
+
     // Build enhanced prompt with style and background
     let enhancedPrompt = prompt;
     if (style && style !== "default") {
@@ -31,20 +40,26 @@ export async function POST(request: Request) {
     }
 
     // ========================================
-    // REAL API CALL: DALL-E 3
+    // REAL API CALLS: DALL-E 3 + Flux Pro
+    // Run in parallel for speed
     // ========================================
-    console.log("Generating with DALL-E 3:", enhancedPrompt);
     const dalleStartTime = Date.now();
-    const dalleResult = await generateWithDallE3(enhancedPrompt, {
-      size: dalleSize,
-      quality: "standard",
-    });
-    const dalleTime = Math.round((Date.now() - dalleStartTime) / 1000);
+    const fluxStartTime = Date.now();
 
-    // ========================================
-    // MOCK DATA: Flux Pro & Nano Banana Pro
-    // (Will be replaced in Step 2 and Step 3)
-    // ========================================
+    const [dalleResult, fluxResult] = await Promise.all([
+      generateWithDallE3(enhancedPrompt, {
+        size: dalleSize,
+        quality: "standard",
+      }),
+      generateWithFluxPro(enhancedPrompt, {
+        aspectRatio: fluxAspectRatio,
+        outputFormat: "png",
+        outputQuality: 90,
+      }),
+    ]);
+
+    const dalleTime = Math.round((Date.now() - dalleStartTime) / 1000);
+    const fluxTime = Math.round((Date.now() - fluxStartTime) / 1000);
 
     const results = [
       // REAL DALL-E 3 RESULT
@@ -63,18 +78,20 @@ export async function POST(request: Request) {
         revisedPrompt: dalleResult.revisedPrompt,
       },
 
-      // MOCK: Flux Pro (will integrate in Step 2)
+      // REAL FLUX PRO RESULT
       {
         aiService: "replicate_flux",
         displayName: "Flux Pro",
         provider: "Replicate",
-        imageUrl:
-          "https://via.placeholder.com/512/059669/FFFFFF?text=Flux+Pro+(Mock)",
+        imageUrl: fluxResult.success
+          ? fluxResult.imageUrl
+          : "https://via.placeholder.com/512/EF4444/FFFFFF?text=Flux+Error",
         creditCost: 10,
         quality: "Very Good",
-        speed: "~12s",
-        generationTime: 12,
+        speed: `~${fluxTime}s`,
+        generationTime: fluxTime,
         recommended: true,
+        error: fluxResult.success ? undefined : fluxResult.error,
       },
 
       // MOCK: Nano Banana Pro (will integrate in Step 3)
@@ -94,7 +111,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       results,
-      message: "DALL-E 3 is live, Flux and Nano Banana are still mock",
+      message: "DALL-E 3 and Flux Pro are live, Nano Banana is still mock",
     });
   } catch (error) {
     console.error("Test generation error:", error);
