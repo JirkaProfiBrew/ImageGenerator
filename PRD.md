@@ -860,6 +860,80 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 
 ---
 
+### Epic 3.5: Projects & Style Consistency
+
+**User Story 3.5.1:** Jako content creator chci vytvořit projekt s definovaným stylem, aby všechny moje generované obrázky měly konzistentní vzhled.
+
+**Acceptance Criteria:**
+- [ ] User může vytvořit nový projekt s názvem
+- [ ] User může definovat base style prompt (např. "1960s style, warm colors, film grain")
+- [ ] User může zvolit výchozí AI službu pro projekt
+- [ ] User může zvolit výchozí aspect ratio pro projekt
+- [ ] Projekt se uloží do databáze
+- [ ] User vidí projekt na dashboardu
+
+**Priority:** P0 (MVP - Phase 7.5)
+
+---
+
+**User Story 3.5.2:** Jako user chci vygenerovat ukázkový obrázek se stylem projektu před bulk generováním, abych ověřil/a, že styl vypadá dobře.
+
+**Acceptance Criteria:**
+- [ ] User zadá popis scény v rámci projektu
+- [ ] Systém zkombinuje base style projektu + popis scény do plného promptu
+- [ ] Systém vygeneruje sample s 1-3 AI službami (volitelné checkboxy)
+- [ ] User vidí side-by-side porovnání
+- [ ] User může schválit a zamknout styl, nebo iterovat na stylu projektu
+- [ ] Schválený sample se uloží jako referenční obrázek projektu
+
+**Priority:** P0 (MVP - Phase 7.5)
+
+---
+
+**User Story 3.5.3:** Jako developer/user chci vybrat, které AI služby testovat, abych ušetřil kredity a mohl debugovat konkrétní služby.
+
+**Acceptance Criteria:**
+- [ ] Checkboxy pro zapnutí/vypnutí DALL-E 3, Flux Pro, Nano Banana Pro
+- [ ] Alespoň jedna služba musí být vybrána (validace)
+- [ ] Celková cena v kreditech zobrazena před generováním
+- [ ] Volají se pouze vybrané služby
+- [ ] Výsledky zobrazují pouze vybrané služby
+- [ ] Default: všechny služby zapnuté
+
+**Priority:** P0 (MVP - Phase 7.5)
+
+---
+
+**User Story 3.5.4:** Jako user chci generovat více obrázků pomocí zamknutého stylu projektu, aby všechny obrázky byly konzistentní.
+
+**Acceptance Criteria:**
+- [ ] User může spustit bulk generování ze zamknutého projektu
+- [ ] Dva režimy vstupu: Textový popis NEBO CSV upload
+- [ ] Text mode: User popíše N scén ke generování
+- [ ] CSV mode: User nahraje CSV s popisy scén
+- [ ] Systém aplikuje styl projektu na každou scénu
+- [ ] User vidí odhad nákladů před spuštěním
+- [ ] Background job zpracuje všechny generování
+- [ ] Výsledky zachovávají konzistenci stylu projektu
+
+**Priority:** P0 (MVP - Phase 7.5)
+
+---
+
+**User Story 3.5.5:** Jako user chci se vrátit k existujícímu projektu a generovat další obrázky ve stejném stylu, abych mohl/a rozšířit kampaň/knihu/sérii v čase.
+
+**Acceptance Criteria:**
+- [ ] Dashboard zobrazuje všechny projekty uživatele
+- [ ] User může otevřít existující projekt
+- [ ] Projekt zobrazuje: base style, zamknuté samples, předchozí bulk joby
+- [ ] User může spustit nové bulk generování ve stejném stylu
+- [ ] Nová generování používají stejná nastavení projektu (AI služba, styl, ratio)
+- [ ] User může vidět všechny obrázky z projektu napříč všemi joby
+
+**Priority:** P1 (Phase 7.5 - should have)
+
+---
+
 ### Epic 6: Post-Generation Editing (V2)
 
 **User Story 6.1:** Jako user chci přegenerovat konkrétní obrázky které se nepovedla.
@@ -1130,6 +1204,17 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 - [ ] Password reset flow
 - [ ] Welcome email s 20 free credits
 - [ ] Onboarding tour (tooltips první použití)
+
+---
+
+**F. Projects & Style Consistency (Phase 7.5)**
+- [ ] Vytvoření projektu s názvem a base stylem
+- [ ] Generování style sample (1-3 AI služby, volitelné checkboxy)
+- [ ] Zamknutí stylu projektu po schválení
+- [ ] Selektivní generování služeb (checkboxy)
+- [ ] Aplikace stylu projektu na bulk generování
+- [ ] Návrat k projektu pro dodatečná generování
+- [ ] Dashboard projektů (seznam všech projektů)
 
 ---
 
@@ -1414,6 +1499,36 @@ expires_at: timestamp
 created_at: timestamp
 ```
 
+**Projects Table (Phase 7.5):**
+```sql
+id: uuid (PK)
+user_id: uuid (FK → users)
+name: string (e.g., "1960s Bar Campaign")
+base_prompt: text (e.g., "1960s style, warm colors, cozy atmosphere...")
+ai_service: enum ('openai_dalle3', 'replicate_flux', 'google_nano_banana')
+default_ratio: string ('1:1', '16:9', '9:16', '4:3')
+status: enum ('draft', 'locked', 'active')
+locked_sample_id: uuid (FK → samples, nullable) -- referenční obrázek pro styl
+created_at: timestamp
+updated_at: timestamp
+```
+
+**Samples Table (Phase 7.5):**
+```sql
+id: uuid (PK)
+project_id: uuid (FK → projects)
+scene_description: text
+generated_images: jsonb [{aiService, imageUrl, creditCost}]
+selected_service: string -- kterou AI user zvolil pro bulk
+is_locked: boolean (default: false) -- je toto schválený sample?
+created_at: timestamp
+```
+
+**Update Jobs Table (Phase 7.5):**
+```
++ project_id: uuid (FK → projects, nullable) -- vazba na projekt pro konzistenci stylu
+```
+
 ---
 
 ### 7.4 API Endpoints
@@ -1550,8 +1665,27 @@ created_at: timestamp
   - Response: `{ project_id, items_preview: [first 5] }`
   
 - `POST /api/bulk/generation/start`
-  - Body: Same as enhancement
+  - Body: Same as enhancement (+ optional `projectId` for style consistency)
   - Response: Same as enhancement
+
+---
+
+**Projects (Phase 7.5):**
+- `POST /api/projects` - vytvoření nového projektu
+  - Body: `{ name, basePrompt, aiService, defaultRatio }`
+  - Response: `{ projectId, ... }`
+- `GET /api/projects` - seznam projektů uživatele
+- `GET /api/projects/:id` - detail projektu
+- `PATCH /api/projects/:id` - úprava projektu (pouze pokud status=draft)
+- `DELETE /api/projects/:id` - smazání projektu
+
+**Samples (Phase 7.5):**
+- `POST /api/projects/:id/samples` - generování style sample
+  - Body: `{ sceneDescription, selectedServices: { dalle3: bool, flux: bool, nanoBanana: bool } }`
+  - Response: `{ sampleId, generatedImages: [{ aiService, imageUrl, creditCost }] }`
+- `PATCH /api/projects/:id/samples/:sampleId/lock` - zamknutí sample jako referenčního
+  - Aktualizuje project.status na 'locked'
+  - Response: `{ project: { status: 'locked', locked_sample_id: sampleId } }`
 
 ---
 
@@ -2334,6 +2468,13 @@ Target:
 - [ ] Unused credit balance (dead money)
 - [ ] Target: <20% of sold credits unused after 90 days
 
+**Project Usage (Phase 7.5):**
+- [ ] Průměrný počet projektů na uživatele
+- [ ] % uživatelů, kteří se vrací ke stejnému projektu (retention indikátor)
+- [ ] Průměrný počet bulk jobů na projekt
+- [ ] Project style lock rate (% kteří schválí první sample vs iterují)
+- [ ] Target: 60%+ projektů má alespoň 2 bulk joby
+
 ---
 
 ### 10.3 Product-Market Fit Signals
@@ -2508,6 +2649,17 @@ This Month:
 - [ ] SEO optimization
 - [ ] Content marketing
 - [ ] Partnerships (Shopify, WooCommerce)
+
+---
+
+### Phase 7.5: Projects & Samples (Weeks 14-15)
+- [ ] Database schema pro Projects a Samples tabulky
+- [ ] Create project page (název, base style, AI služba, ratio)
+- [ ] Generate style sample se selektivními službami (checkboxy)
+- [ ] Lock project style po schválení sample
+- [ ] Update bulk generování pro použití stylu projektu
+- [ ] Project dashboard (seznam všech projektů, stav, počet obrázků)
+- [ ] Návrat k existujícímu projektu pro další generování
 
 ---
 
@@ -2695,6 +2847,17 @@ This Month:
 ---
 
 ## 14. CHANGELOG
+
+### Version 2.3 (Únor 2026) - Projects & Style Consistency
+- **NOVÉ:** Epic 3.5: Projects & Style Consistency (5 user stories: 3.5.1-3.5.5)
+- **NOVÉ:** Feature section F: Projects & Style Consistency (Phase 7.5)
+- **NOVÉ:** DB schema: Projects table, Samples table, Jobs.project_id
+- **NOVÉ:** API endpointy: /api/projects, /api/projects/:id/samples
+- **NOVÉ:** Selektivní generování AI služeb (checkboxy DALL-E/Flux/Banana)
+- **NOVÉ:** Phase 7.5 v roadmapě (Weeks 14-15)
+- **NOVÉ:** KPIs pro Project Usage metriky
+
+---
 
 ### Version 2.2 (Únor 2026) - Two-Stage Storage Strategy
 - **ZMĚNA:** Storage Architecture přepracována na dvoustupňovou strategii: Supabase Storage (MVP) → Cloudflare R2 (scale)

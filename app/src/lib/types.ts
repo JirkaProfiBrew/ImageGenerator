@@ -158,3 +158,36 @@ export type BackgroundType =
   | "gradient"
   | "custom"
   | "transparent";
+
+// --- Sample & Style Project (Phase 7.5) ---
+export interface GeneratedImageData {
+  aiService: AIService;
+  imageUrl: string;
+  creditCost: number;
+  generationTime: number;
+  quality: string;
+  error?: string;
+}
+
+export interface Sample {
+  id: string;
+  projectId: string;
+  sceneDescription: string;
+  generatedImages: GeneratedImageData[];
+  selectedService?: AIService;
+  isLocked: boolean;
+  createdAt: string;
+}
+
+export interface CreateProjectInput {
+  name: string;
+  basePrompt: string;
+  aiService: AIService;
+  defaultRatio: AspectRatio;
+}
+
+export interface SelectedServices {
+  dalle3: boolean;
+  flux: boolean;
+  nanoBanana: boolean;
+}

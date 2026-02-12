@@ -59,6 +59,11 @@ export interface Database {
             | "failed"
             | "cancelled";
           settings: Json;
+          base_prompt: string | null;
+          default_ratio: string;
+          locked_sample_id: string | null;
+          style: string;
+          background: string;
           created_at: string;
           updated_at: string;
         };
@@ -78,6 +83,11 @@ export interface Database {
             | "failed"
             | "cancelled";
           settings?: Json;
+          base_prompt?: string | null;
+          default_ratio?: string;
+          locked_sample_id?: string | null;
+          style?: string;
+          background?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -97,8 +107,43 @@ export interface Database {
             | "failed"
             | "cancelled";
           settings?: Json;
+          base_prompt?: string | null;
+          default_ratio?: string;
+          locked_sample_id?: string | null;
+          style?: string;
+          background?: string;
           created_at?: string;
           updated_at?: string;
+        };
+        Relationships: [];
+      };
+      samples: {
+        Row: {
+          id: string;
+          project_id: string;
+          scene_description: string;
+          generated_images: Json;
+          selected_service: string | null;
+          is_locked: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          scene_description: string;
+          generated_images?: Json;
+          selected_service?: string | null;
+          is_locked?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          scene_description?: string;
+          generated_images?: Json;
+          selected_service?: string | null;
+          is_locked?: boolean;
+          created_at?: string;
         };
         Relationships: [];
       };
