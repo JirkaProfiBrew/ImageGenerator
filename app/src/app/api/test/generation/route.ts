@@ -6,7 +6,13 @@ import { generateWithNanoBananaPro } from "@/lib/ai/google";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, style, backgroundType, ratio } = body;
+    const {
+      prompt,
+      style,
+      backgroundType,
+      ratio,
+      selectedServices = { dalle3: true, flux: true, nanoBanana: true },
+    } = body;
 
     console.log("=== GENERATION REQUEST ===");
     console.log("Received ratio:", ratio);
@@ -97,81 +103,110 @@ export async function POST(request: Request) {
     }
 
     // ========================================
-    // ALL 3 REAL API CALLS - in parallel
+    // SELECTIVE AI API CALLS - only selected services, in parallel
     // ========================================
+    console.log("Selected services:", selectedServices);
+
+    const apiCalls: Promise<{ key: string; result: unknown }>[] = [];
+
+    if (selectedServices.dalle3) {
+      apiCalls.push(
+        generateWithDallE3(enhancedPrompt, {
+          size: dalleSize,
+          quality: "standard",
+          style: dalleStyle,
+        }).then((result) => ({ key: "dalle3", result }))
+      );
+    } else {
+      console.log("DALL-E 3 skipped (not selected)");
+    }
+
+    if (selectedServices.flux) {
+      apiCalls.push(
+        generateWithFluxPro(enhancedPrompt, {
+          aspectRatio: fluxAspectRatio,
+          outputFormat: "png",
+          outputQuality: 90,
+        }).then((result) => ({ key: "flux", result }))
+      );
+    } else {
+      console.log("Flux Pro skipped (not selected)");
+    }
+
+    if (selectedServices.nanoBanana) {
+      apiCalls.push(
+        generateWithNanoBananaPro(googlePrompt).then((result) => ({
+          key: "nanoBanana",
+          result,
+        }))
+      );
+    } else {
+      console.log("Nano Banana Pro skipped (not selected)");
+    }
+
     const startTime = Date.now();
-
-    const [dalleResult, fluxResult, nanoBananaResult] = await Promise.all([
-      generateWithDallE3(enhancedPrompt, {
-        size: dalleSize,
-        quality: "standard",
-        style: dalleStyle,
-      }),
-      generateWithFluxPro(enhancedPrompt, {
-        aspectRatio: fluxAspectRatio,
-        outputFormat: "png",
-        outputQuality: 90,
-      }),
-      generateWithNanoBananaPro(googlePrompt),
-    ]);
-
+    const apiResults = await Promise.all(apiCalls);
     const totalTime = Math.round((Date.now() - startTime) / 1000);
 
-    const results = [
-      // REAL DALL-E 3 RESULT
-      {
-        aiService: "openai_dalle3",
-        displayName: "DALL-E 3",
-        provider: "OpenAI",
-        imageUrl: dalleResult.success
-          ? dalleResult.imageUrl
-          : "https://via.placeholder.com/512/EF4444/FFFFFF?text=DALL-E+Error",
-        creditCost: 15,
-        quality: "Excellent",
-        speed: `~${totalTime}s`,
-        generationTime: totalTime,
-        error: dalleResult.success ? undefined : dalleResult.error,
-        revisedPrompt: dalleResult.revisedPrompt,
-      },
+    // Build results array from completed calls
+    const results: Record<string, unknown>[] = [];
 
-      // REAL FLUX PRO RESULT
-      {
-        aiService: "replicate_flux",
-        displayName: "Flux Pro",
-        provider: "Replicate",
-        imageUrl: fluxResult.success
-          ? fluxResult.imageUrl
-          : "https://via.placeholder.com/512/EF4444/FFFFFF?text=Flux+Error",
-        creditCost: 10,
-        quality: "Very Good",
-        speed: `~${totalTime}s`,
-        generationTime: totalTime,
-        recommended: true,
-        error: fluxResult.success ? undefined : fluxResult.error,
-      },
+    for (const { key, result } of apiResults) {
+      if (key === "dalle3") {
+        const r = result as { success: boolean; imageUrl?: string; error?: string; revisedPrompt?: string };
+        results.push({
+          aiService: "openai_dalle3",
+          displayName: "DALL-E 3",
+          provider: "OpenAI",
+          imageUrl: r.success
+            ? r.imageUrl
+            : "https://via.placeholder.com/512/EF4444/FFFFFF?text=DALL-E+Error",
+          creditCost: 15,
+          quality: "Excellent",
+          speed: `~${totalTime}s`,
+          generationTime: totalTime,
+          error: r.success ? undefined : r.error,
+          revisedPrompt: r.revisedPrompt,
+        });
+      } else if (key === "flux") {
+        const r = result as { success: boolean; imageUrl?: string; error?: string };
+        results.push({
+          aiService: "replicate_flux",
+          displayName: "Flux Pro",
+          provider: "Replicate",
+          imageUrl: r.success
+            ? r.imageUrl
+            : "https://via.placeholder.com/512/EF4444/FFFFFF?text=Flux+Error",
+          creditCost: 10,
+          quality: "Very Good",
+          speed: `~${totalTime}s`,
+          generationTime: totalTime,
+          recommended: true,
+          error: r.success ? undefined : r.error,
+        });
+      } else if (key === "nanoBanana") {
+        const r = result as { success: boolean; imageUrl?: string; error?: string };
+        results.push({
+          aiService: "google_nano_banana",
+          displayName: "Nano Banana Pro",
+          provider: "Google",
+          imageUrl: r.success
+            ? r.imageUrl
+            : "https://via.placeholder.com/512/EF4444/FFFFFF?text=Nano+Banana+Error",
+          creditCost: 6,
+          quality: "Excellent",
+          speed: `~${totalTime}s`,
+          generationTime: totalTime,
+          error: r.success ? undefined : r.error,
+        });
+      }
+    }
 
-      // REAL NANO BANANA PRO RESULT
-      {
-        aiService: "google_nano_banana",
-        displayName: "Nano Banana Pro",
-        provider: "Google",
-        imageUrl: nanoBananaResult.success
-          ? nanoBananaResult.imageUrl
-          : "https://via.placeholder.com/512/EF4444/FFFFFF?text=Nano+Banana+Error",
-        creditCost: 6,
-        quality: "Excellent",
-        speed: `~${totalTime}s`,
-        generationTime: totalTime,
-        error: nanoBananaResult.success
-          ? undefined
-          : nanoBananaResult.error,
-      },
-    ];
-
+    const activeCount = apiResults.length;
     return NextResponse.json({
       success: true,
       results,
-      message: "All 3 AI services are live",
+      message: `${activeCount} AI service${activeCount !== 1 ? "s" : ""} generated`,
     });
   } catch (error) {
     console.error("Test generation error:", error);

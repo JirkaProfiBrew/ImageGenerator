@@ -17,16 +17,38 @@ import { ParameterPanel } from "@/components/test-mode/parameter-panel";
 import type { ParameterPanelProps } from "@/components/test-mode/parameter-panel";
 import { AIComparisonGrid } from "@/components/test-mode/ai-comparison-grid";
 import type { AIService, AITestResult } from "@/lib/types";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   generationParamsSchema,
   type GenerationParams,
 } from "@/lib/validations";
+
+interface SelectedServices {
+  dalle3: boolean;
+  flux: boolean;
+  nanoBanana: boolean;
+}
 
 export default function TestGenerationPage() {
   const [params, setParams] = useState<ParameterPanelProps["values"]>({});
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<AITestResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedServices, setSelectedServices] = useState<SelectedServices>({
+    dalle3: true,
+    flux: true,
+    nanoBanana: true,
+  });
+
+  const selectedCount =
+    Number(selectedServices.dalle3) +
+    Number(selectedServices.flux) +
+    Number(selectedServices.nanoBanana);
+
+  const totalCredits =
+    (selectedServices.dalle3 ? 15 : 0) +
+    (selectedServices.flux ? 10 : 0) +
+    (selectedServices.nanoBanana ? 6 : 0);
 
   const {
     handleSubmit,
@@ -76,6 +98,7 @@ export default function TestGenerationPage() {
           style: data.style,
           backgroundType: data.backgroundType,
           ratio: data.ratio,
+          selectedServices,
         }),
       });
 
@@ -142,15 +165,82 @@ export default function TestGenerationPage() {
           </CardContent>
         </Card>
 
+        {/* Step 2 - Select AI Services */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-lg">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                2
+              </span>
+              Select AI Services
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-6">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={selectedServices.dalle3}
+                  onCheckedChange={(checked) =>
+                    setSelectedServices((prev) => ({
+                      ...prev,
+                      dalle3: checked === true,
+                    }))
+                  }
+                />
+                <span className="text-sm">DALL-E 3 (15 credits)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={selectedServices.flux}
+                  onCheckedChange={(checked) =>
+                    setSelectedServices((prev) => ({
+                      ...prev,
+                      flux: checked === true,
+                    }))
+                  }
+                />
+                <span className="text-sm">Flux Pro (10 credits)</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={selectedServices.nanoBanana}
+                  onCheckedChange={(checked) =>
+                    setSelectedServices((prev) => ({
+                      ...prev,
+                      nanoBanana: checked === true,
+                    }))
+                  }
+                />
+                <span className="text-sm">Nano Banana Pro (6 credits)</span>
+              </label>
+            </div>
+
+            {selectedCount === 0 && (
+              <p className="text-sm text-destructive">
+                Select at least one AI service
+              </p>
+            )}
+
+            <p className="text-sm text-muted-foreground">
+              Estimated cost: {totalCredits} credits ({selectedCount}{" "}
+              {selectedCount === 1 ? "service" : "services"})
+            </p>
+          </CardContent>
+        </Card>
+
         {/* CTA */}
         <div className="flex flex-col items-center gap-2">
           <Button
             type="submit"
             size="lg"
             className="px-10 text-base"
-            disabled={loading}
+            disabled={loading || selectedCount === 0}
           >
-            {loading ? "Generating..." : "Generate 3 Variants"}
+            {loading
+              ? "Generating..."
+              : `Generate ${selectedCount} Variant${selectedCount !== 1 ? "s" : ""}`}
           </Button>
           {loading ? (
             <p className="text-sm text-muted-foreground">
@@ -158,7 +248,7 @@ export default function TestGenerationPage() {
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Cost: ~3-15 credits per variant
+              Cost: ~{totalCredits} credits
             </p>
           )}
         </div>
