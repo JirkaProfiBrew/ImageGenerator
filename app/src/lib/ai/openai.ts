@@ -7,6 +7,7 @@ const openai = new OpenAI({
 export interface DallEGenerateOptions {
   size?: "1024x1024" | "1024x1792" | "1792x1024";
   quality?: "standard" | "hd";
+  style?: "natural" | "vivid";
 }
 
 export interface DallEResult {
@@ -27,6 +28,7 @@ export async function generateWithDallE3(
       n: 1,
       size: options?.size || "1024x1024",
       quality: options?.quality || "standard",
+      style: options?.style || "vivid",
     });
 
     const image = response.data?.[0];
