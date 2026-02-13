@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { generateConsistencySeed } from "@/lib/ai/parameter-mapper";
 
 const MOCK_USER_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -61,16 +62,17 @@ export async function PATCH(
 
     if (updateSampleError) throw new Error(updateSampleError.message);
 
-    // Update project: mark as locked with the chosen sample and service
-    // Note: "locked" status requires a DB migration to add to the status check constraint.
-    // Using "queued" as the nearest valid status until the migration is applied.
-    // TODO: Add "locked" to projects.status CHECK constraint and database.types.ts
+    // Generate consistency seed for future bulk generations
+    const consistencySeed = generateConsistencySeed();
+
+    // Update project: mark as locked with the chosen sample, service, and seed
     const { data: updatedProject, error: updateProjectError } = await supabaseAdmin
       .from("projects")
       .update({
         status: "queued" as const,
         locked_sample_id: sampleId,
         ai_service: selected_service,
+        consistency_seed: consistencySeed,
         updated_at: new Date().toISOString(),
       })
       .eq("id", projectId)

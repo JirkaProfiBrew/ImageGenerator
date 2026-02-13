@@ -64,6 +64,9 @@ export interface Database {
           locked_sample_id: string | null;
           style: string;
           background: string;
+          quality_level: "standard" | "high" | "ultra";
+          creativity_level: "low" | "medium" | "high";
+          consistency_seed: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -88,6 +91,9 @@ export interface Database {
           locked_sample_id?: string | null;
           style?: string;
           background?: string;
+          quality_level?: "standard" | "high" | "ultra";
+          creativity_level?: "low" | "medium" | "high";
+          consistency_seed?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -112,6 +118,9 @@ export interface Database {
           locked_sample_id?: string | null;
           style?: string;
           background?: string;
+          quality_level?: "standard" | "high" | "ultra";
+          creativity_level?: "low" | "medium" | "high";
+          consistency_seed?: number | null;
           created_at?: string;
           updated_at?: string;
         };

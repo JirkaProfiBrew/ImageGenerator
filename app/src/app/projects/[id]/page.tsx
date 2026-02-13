@@ -56,6 +56,9 @@ interface ProjectDetail {
   default_ratio: string;
   style: string;
   background: string;
+  quality_level: string;
+  creativity_level: string;
+  consistency_seed: number | null;
   samples: SampleItem[];
 }
 
@@ -66,6 +69,8 @@ interface EditedFields {
   style?: string;
   background?: string;
   default_ratio?: string;
+  quality_level?: string;
+  creativity_level?: string;
 }
 
 interface SelectedServices {
@@ -173,6 +178,8 @@ export default function ProjectDetailPage() {
       style: project.style || "realistic",
       background: project.background || "white",
       default_ratio: project.default_ratio || "1:1",
+      quality_level: project.quality_level || "standard",
+      creativity_level: project.creativity_level || "medium",
     });
   };
 
@@ -201,6 +208,8 @@ export default function ProjectDetailPage() {
           style: edited.style,
           background: edited.background,
           default_ratio: edited.default_ratio,
+          quality_level: edited.quality_level,
+          creativity_level: edited.creativity_level,
         }),
       });
 
@@ -239,6 +248,8 @@ export default function ProjectDetailPage() {
             style: edited.style,
             background: edited.background,
             default_ratio: edited.default_ratio,
+            quality_level: edited.quality_level,
+            creativity_level: edited.creativity_level,
           }),
         });
 
@@ -632,6 +643,106 @@ export default function ProjectDetailPage() {
               )}
             </div>
           </div>
+
+          {/* Quality & Creativity - 2 column grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Quality Level */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Quality Level
+                {editing && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">
+                    (resolution &amp; detail)
+                  </span>
+                )}
+              </p>
+              {editing ? (
+                <Select
+                  value={
+                    edited.quality_level ??
+                    project.quality_level ??
+                    "standard"
+                  }
+                  onValueChange={(v) =>
+                    setEdited((prev) => ({ ...prev, quality_level: v }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="standard">
+                      Standard (fastest, cheapest)
+                    </SelectItem>
+                    <SelectItem value="high">High (balanced)</SelectItem>
+                    <SelectItem value="ultra">
+                      Ultra (best quality, slower)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-md border capitalize">
+                  {project.quality_level || "standard"}
+                </p>
+              )}
+            </div>
+
+            {/* Creativity Level */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium">
+                Creativity Level
+                {editing && (
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">
+                    (prompt strictness)
+                  </span>
+                )}
+              </p>
+              {editing ? (
+                <Select
+                  value={
+                    edited.creativity_level ??
+                    project.creativity_level ??
+                    "medium"
+                  }
+                  onValueChange={(v) =>
+                    setEdited((prev) => ({
+                      ...prev,
+                      creativity_level: v,
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">
+                      Low (precise, follows prompt strictly)
+                    </SelectItem>
+                    <SelectItem value="medium">
+                      Medium (balanced)
+                    </SelectItem>
+                    <SelectItem value="high">
+                      High (creative, interpretive)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-md border capitalize">
+                  {project.creativity_level || "medium"}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Consistency seed display for locked projects */}
+          {project.status === "queued" && project.consistency_seed && (
+            <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md border">
+              Consistency Seed: {project.consistency_seed}{" "}
+              <span className="text-muted-foreground/60">
+                (ensures similar results across bulk generations)
+              </span>
+            </div>
+          )}
 
           {/* Auto-save tip */}
           {editing && (

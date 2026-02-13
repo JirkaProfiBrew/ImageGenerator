@@ -43,6 +43,8 @@ export async function POST(request: Request) {
         mode: "generation" as const,
         style: "realistic",
         background: "white",
+        quality_level: "standard" as const,
+        creativity_level: "medium" as const,
         status: "draft" as const,
         settings: {},
       })

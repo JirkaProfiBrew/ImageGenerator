@@ -88,6 +88,8 @@ export async function PATCH(
     if (body.style !== undefined) updateData.style = body.style;
     if (body.background !== undefined) updateData.background = body.background;
     if (body.default_ratio !== undefined) updateData.default_ratio = body.default_ratio;
+    if (body.quality_level !== undefined) updateData.quality_level = body.quality_level;
+    if (body.creativity_level !== undefined) updateData.creativity_level = body.creativity_level;
 
     const { data: project, error } = await supabaseAdmin
       .from("projects")

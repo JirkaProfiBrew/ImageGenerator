@@ -52,6 +52,27 @@ export async function POST(
       ? `${project.base_prompt}. Scene: ${scene_description}`
       : scene_description;
 
+    // Project parameter settings
+    const uiStyle = project.style || "realistic";
+    const qualityLevel = project.quality_level || "standard";
+    const creativityLevel = project.creativity_level || "medium";
+
+    // Map aspect ratio for DALL-E size
+    const dalleSize: "1024x1024" | "1024x1792" | "1792x1024" =
+      project.default_ratio === "9:16"
+        ? "1024x1792"
+        : project.default_ratio === "16:9"
+          ? "1792x1024"
+          : "1024x1024";
+
+    // Map aspect ratio for Flux
+    const fluxRatio = (project.default_ratio || "1:1") as
+      | "1:1"
+      | "16:9"
+      | "9:16"
+      | "4:3"
+      | "3:2";
+
     // Generate with selected AI services in parallel
     const apiCalls: Promise<{
       key: string;
@@ -61,9 +82,10 @@ export async function POST(
     if (services.dalle3) {
       apiCalls.push(
         generateWithDallE3(fullPrompt, {
-          size: "1024x1024",
-          quality: "standard",
-          style: "vivid",
+          size: dalleSize,
+          uiStyle,
+          qualityLevel,
+          creativityLevel,
         }).then((result) => ({ key: "dalle3", result }))
       );
     }
@@ -71,16 +93,24 @@ export async function POST(
     if (services.flux) {
       apiCalls.push(
         generateWithFluxPro(fullPrompt, {
-          aspectRatio: "1:1",
+          aspectRatio: fluxRatio,
           outputFormat: "png",
           outputQuality: 90,
+          uiStyle,
+          qualityLevel,
+          creativityLevel,
+          seed: project.consistency_seed,
         }).then((result) => ({ key: "flux", result }))
       );
     }
 
     if (services.nanoBanana) {
       apiCalls.push(
-        generateWithNanoBananaPro(fullPrompt).then((result) => ({
+        generateWithNanoBananaPro(fullPrompt, {
+          uiStyle,
+          qualityLevel,
+          creativityLevel,
+        }).then((result) => ({
           key: "nanoBanana",
           result,
         }))

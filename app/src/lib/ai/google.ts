@@ -1,3 +1,9 @@
+import {
+  getNanaBananaParameters,
+  type QualityLevel,
+  type CreativityLevel,
+} from "./parameter-mapper";
+
 const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY || "";
 const API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent";
@@ -5,6 +11,9 @@ const API_URL =
 export interface GoogleGenerateOptions {
   aspectRatio?: string;
   temperature?: number;
+  uiStyle?: string;
+  qualityLevel?: QualityLevel;
+  creativityLevel?: CreativityLevel;
 }
 
 export interface GoogleResult {
@@ -40,6 +49,18 @@ export async function generateWithNanoBananaPro(
   try {
     console.log("Generating with Nano Banana Pro:", prompt);
 
+    let temperature = options?.temperature ?? 1.0;
+
+    if (options?.uiStyle && options?.qualityLevel && options?.creativityLevel) {
+      const params = getNanaBananaParameters(
+        options.uiStyle,
+        options.qualityLevel,
+        options.creativityLevel
+      );
+      temperature = params.temperature;
+      console.log("Nano Banana params:", { temperature });
+    }
+
     const response = await fetch(`${API_URL}?key=${GOOGLE_AI_API_KEY}`, {
       method: "POST",
       headers: {
@@ -52,7 +73,7 @@ export async function generateWithNanoBananaPro(
           },
         ],
         generationConfig: {
-          temperature: options?.temperature ?? 1.0,
+          temperature,
           responseModalities: ["TEXT", "IMAGE"],
         },
       }),
