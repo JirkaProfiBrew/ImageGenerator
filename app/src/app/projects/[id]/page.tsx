@@ -22,9 +22,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { AIService } from "@/lib/types";
+import type { AIService, ProjectContext } from "@/lib/types";
 import { AI_SERVICE_LABELS } from "@/lib/types";
 import { ImageModal } from "@/components/ImageModal";
+import { ProjectContextUpload } from "@/components/ProjectContextUpload";
+import { ServiceFineTuningModal } from "@/components/ServiceFineTuningModal";
 
 // --- Types ---
 
@@ -42,7 +44,7 @@ interface SampleItem {
   project_id: string;
   scene_description: string;
   generated_images: GeneratedImageItem[];
-  selected_service: string | null;
+  locked_ai_service_id: string | null;
   is_locked: boolean;
   created_at: string;
 }
@@ -53,13 +55,14 @@ interface ProjectDetail {
   status: string;
   mode: string;
   base_prompt: string | null;
-  ai_service: AIService | null;
+  ai_service_id: AIService | null;
   default_ratio: string;
   style: string;
   background: string;
   quality_level: string;
   creativity_level: string;
   consistency_seed: number | null;
+  context_config: ProjectContext;
   samples: SampleItem[];
 }
 
@@ -149,7 +152,7 @@ export default function ProjectDetailPage() {
     {
       id: string;
       sample_id: string | null;
-      ai_service: string;
+      ai_service_id: string;
       image_url: string;
       scene_description: string | null;
       created_at: string;
@@ -157,6 +160,15 @@ export default function ProjectDetailPage() {
   >([]);
   const [savingImageKey, setSavingImageKey] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Context state
+  const [contextConfig, setContextConfig] = useState<ProjectContext>({});
+
+  // Service fine-tuning state
+  const [serviceConfigs, setServiceConfigs] = useState<
+    Record<string, { use_basic_params: boolean; custom_params: Record<string, unknown> | null }>
+  >({});
+  const [fineTuningService, setFineTuningService] = useState<AIService | null>(null);
 
   const selectedCount =
     Number(selectedServices.dalle3) +
@@ -175,7 +187,13 @@ export default function ProjectDetailPage() {
       }
 
       const samples = json.samples ?? [];
-      setProject({ ...json.project, samples });
+      const proj = { ...json.project, samples };
+      setProject(proj);
+
+      // Sync context config from project
+      setContextConfig(
+        (json.project.context_config as ProjectContext) ?? {}
+      );
 
       // Pre-fill scene description from most recent sample (if textarea is empty)
       if (samples.length > 0) {
@@ -189,6 +207,25 @@ export default function ProjectDetailPage() {
       setError(message);
     } finally {
       setLoading(false);
+    }
+  }, [projectId]);
+
+  const fetchServiceConfigs = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/service-configs`);
+      const json = await response.json();
+      if (json.success && json.configs) {
+        const map: typeof serviceConfigs = {};
+        for (const cfg of json.configs) {
+          map[cfg.ai_service_id] = {
+            use_basic_params: cfg.use_basic_params,
+            custom_params: cfg.custom_params as Record<string, unknown> | null,
+          };
+        }
+        setServiceConfigs(map);
+      }
+    } catch {
+      // Silently fail - fine-tuning configs are supplementary
     }
   }, [projectId]);
 
@@ -207,7 +244,8 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     fetchProject();
     fetchSavedImages();
-  }, [fetchProject, fetchSavedImages]);
+    fetchServiceConfigs();
+  }, [fetchProject, fetchSavedImages, fetchServiceConfigs]);
 
   // --- Edit handlers ---
 
@@ -262,6 +300,7 @@ export default function ProjectDetailPage() {
           default_ratio: edited.default_ratio,
           quality_level: edited.quality_level,
           creativity_level: edited.creativity_level,
+          context_config: contextConfig,
         }),
       });
 
@@ -302,6 +341,7 @@ export default function ProjectDetailPage() {
             default_ratio: edited.default_ratio,
             quality_level: edited.quality_level,
             creativity_level: edited.creativity_level,
+            context_config: contextConfig,
           }),
         });
 
@@ -446,7 +486,7 @@ export default function ProjectDetailPage() {
 
   const isImageSaved = (sampleId: string, aiService: string) =>
     savedImages.some(
-      (img) => img.sample_id === sampleId && img.ai_service === aiService
+      (img) => img.sample_id === sampleId && img.ai_service_id === aiService
     );
 
   const handleSaveImage = async (
@@ -567,12 +607,12 @@ export default function ProjectDetailPage() {
             <div className="flex items-center gap-2 shrink-0">
               {getStatusBadge(project.status)}
 
-              {project.ai_service && project.status === "queued" && (
+              {project.ai_service_id && project.status === "queued" && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-100 border border-blue-300 rounded-lg">
                   <span className="text-lg">🔒</span>
                   <div className="text-sm">
                     <div className="text-blue-900 font-semibold">
-                      {AI_SERVICE_LABELS[project.ai_service]}
+                      {AI_SERVICE_LABELS[project.ai_service_id]}
                     </div>
                     <div className="text-blue-700 text-xs">
                       Locked for bulk &middot;{" "}
@@ -878,6 +918,72 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
+          {/* Project Context */}
+          {editing && (
+            <ProjectContextUpload
+              context={contextConfig}
+              onContextChange={setContextConfig}
+              disabled={!editing}
+            />
+          )}
+
+          {/* Context summary (when not editing) */}
+          {!editing &&
+            ((contextConfig.reference_images?.length ?? 0) > 0 ||
+              (contextConfig.text_documents?.length ?? 0) > 0) && (
+              <div className="rounded-md border bg-muted/50 p-3">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Context:</strong>
+                  {(contextConfig.reference_images?.length ?? 0) > 0 &&
+                    ` ${contextConfig.reference_images!.length} reference image${contextConfig.reference_images!.length !== 1 ? "s" : ""}`}
+                  {(contextConfig.reference_images?.length ?? 0) > 0 &&
+                    (contextConfig.text_documents?.length ?? 0) > 0 &&
+                    ", "}
+                  {(contextConfig.text_documents?.length ?? 0) > 0 &&
+                    `${contextConfig.text_documents!.length} text document${contextConfig.text_documents!.length !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+            )}
+
+          {/* Service Fine-tuning */}
+          {isEditable && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  Service Fine-tuning
+                  <span className="ml-2 text-xs text-muted-foreground font-normal">
+                    (advanced API parameters per service)
+                  </span>
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {(["openai_dalle3", "replicate_flux", "google_nano_banana"] as AIService[]).map(
+                  (svc) => {
+                    const cfg = serviceConfigs[svc];
+                    const isCustom = cfg && !cfg.use_basic_params;
+                    return (
+                      <button
+                        key={svc}
+                        onClick={() => setFineTuningService(svc)}
+                        className="flex items-center justify-between gap-2 p-3 rounded-md border bg-muted/30 hover:bg-muted/60 transition-colors text-left"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">
+                            {AI_SERVICE_LABELS[svc]}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {isCustom ? "Custom settings" : "Using project defaults"}
+                          </p>
+                        </div>
+                        <span className="text-muted-foreground text-lg">&#9881;</span>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Consistency seed display for locked projects */}
           {project.status === "queued" && project.consistency_seed && (
             <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded-md border">
@@ -901,12 +1007,12 @@ export default function ProjectDetailPage() {
       </Card>
 
       {/* Previously locked info banner */}
-      {project.status === "draft" && project.ai_service && project.consistency_seed && (
+      {project.status === "draft" && project.ai_service_id && project.consistency_seed && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <p className="text-sm text-blue-800">
             <strong>
               Previously locked with{" "}
-              {AI_SERVICE_LABELS[project.ai_service]}
+              {AI_SERVICE_LABELS[project.ai_service_id]}
             </strong>
             <br />
             You can now generate new samples and re-lock with the same or
@@ -1123,7 +1229,7 @@ export default function ProjectDetailPage() {
 
                           {/* "Selected" indicator on image card */}
                           {sample.is_locked &&
-                            sample.selected_service === img.aiService && (
+                            sample.locked_ai_service_id === img.aiService && (
                               <Badge className="mt-2 bg-success text-white border-transparent hover:bg-success/80">
                                 Selected
                               </Badge>
@@ -1265,8 +1371,8 @@ export default function ProjectDetailPage() {
                           <p className="text-sm text-green-700">
                             Using:{" "}
                             <strong className="font-semibold">
-                              {sample.selected_service
-                                ? getServiceName(sample.selected_service)
+                              {sample.locked_ai_service_id
+                                ? getServiceName(sample.locked_ai_service_id)
                                 : "Unknown"}
                             </strong>{" "}
                             for all bulk generations
@@ -1309,13 +1415,13 @@ export default function ProjectDetailPage() {
                   />
                   <div className="p-2 bg-muted/50">
                     <p className="text-xs text-muted-foreground truncate">
-                      {img.ai_service === "openai_dalle3"
+                      {img.ai_service_id === "openai_dalle3"
                         ? "DALL-E 3"
-                        : img.ai_service === "replicate_flux"
+                        : img.ai_service_id === "replicate_flux"
                           ? "Flux Pro"
-                          : img.ai_service === "google_nano_banana"
+                          : img.ai_service_id === "google_nano_banana"
                             ? "Nano Banana Pro"
-                            : img.ai_service}
+                            : img.ai_service_id}
                     </p>
                     <p className="text-xs text-muted-foreground/60">
                       {new Date(img.created_at).toLocaleDateString()}
@@ -1364,6 +1470,25 @@ export default function ProjectDetailPage() {
           imageUrl={previewImage.url}
           alt={previewImage.alt}
           onClose={() => setPreviewImage(null)}
+        />
+      )}
+
+      {/* Service fine-tuning modal */}
+      {fineTuningService && (
+        <ServiceFineTuningModal
+          key={fineTuningService}
+          projectId={projectId}
+          service={fineTuningService}
+          onClose={() => setFineTuningService(null)}
+          onSave={(service, useBasic, params) => {
+            setServiceConfigs((prev) => ({
+              ...prev,
+              [service]: { use_basic_params: useBasic, custom_params: params },
+            }));
+            fetchServiceConfigs();
+          }}
+          initialUseBasic={serviceConfigs[fineTuningService]?.use_basic_params ?? true}
+          initialParams={serviceConfigs[fineTuningService]?.custom_params ?? null}
         />
       )}
     </div>

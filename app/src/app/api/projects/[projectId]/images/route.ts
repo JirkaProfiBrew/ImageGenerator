@@ -59,7 +59,7 @@ export async function POST(
         .select("id")
         .eq("project_id", projectId)
         .eq("sample_id", sample_id)
-        .eq("ai_service", ai_service)
+        .eq("ai_service_id", ai_service)
         .maybeSingle() as { data: { id: string } | null; error: { message: string } | null };
 
       if (dupError) {
@@ -81,7 +81,7 @@ export async function POST(
         project_id: projectId,
         sample_id: sample_id || null,
         image_url,
-        ai_service,
+        ai_service_id: ai_service,
         prompt_used: prompt_used || "",
         scene_description: scene_description || null,
         generation_time: generation_time || null,

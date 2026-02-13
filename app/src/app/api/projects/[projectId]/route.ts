@@ -90,6 +90,7 @@ export async function PATCH(
     if (body.default_ratio !== undefined) updateData.default_ratio = body.default_ratio;
     if (body.quality_level !== undefined) updateData.quality_level = body.quality_level;
     if (body.creativity_level !== undefined) updateData.creativity_level = body.creativity_level;
+    if (body.context_config !== undefined) updateData.context_config = body.context_config;
 
     const { data: project, error } = await supabaseAdmin
       .from("projects")

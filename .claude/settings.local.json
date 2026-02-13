@@ -10,7 +10,16 @@
       "Bash(npx next build:*)",
       "Bash(npm ls:*)",
       "Bash(taskkill:*)",
-      "Bash(npx supabase --version)"
+      "Bash(npx supabase --version)",
+      "Bash(npx next lint:*)",
+      "Bash(curl:*)",
+      "Bash(findstr:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(ss:*)",
+      "Bash(netstat:*)",
+      "Bash(kill:*)",
+      "Bash(cmd.exe //c \"taskkill /F /PID 11360\")"
     ]
   }
 }

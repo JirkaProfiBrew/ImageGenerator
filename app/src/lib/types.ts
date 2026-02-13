@@ -5,6 +5,9 @@
 // --- AI Services ---
 export type AIService = "openai_dalle3" | "replicate_flux" | "google_nano_banana";
 
+/** Alias for the string FK to ai_services.id */
+export type AIServiceId = string;
+
 export type AIServiceLabel = "DALL-E 3" | "Flux Pro" | "Nano Banana Pro";
 
 export const AI_SERVICE_LABELS: Record<AIService, AIServiceLabel> = {
@@ -12,6 +15,27 @@ export const AI_SERVICE_LABELS: Record<AIService, AIServiceLabel> = {
   replicate_flux: "Flux Pro",
   google_nano_banana: "Nano Banana Pro",
 };
+
+/** Full AI service entity from ai_services table */
+export interface AIServiceData {
+  id: AIService;
+  name: string;
+  provider: string;
+  status: "active" | "beta" | "deprecated" | "disabled";
+  is_available: boolean;
+  base_cost_credits: number;
+  supports_reference_images: boolean;
+  max_reference_images: number;
+  supports_text_context: boolean;
+  supports_seed: boolean;
+  supports_custom_params: boolean;
+  available_params: Record<string, unknown> | null;
+  default_params: Record<string, unknown> | null;
+  sort_order: number;
+  display_name: string | null;
+  description: string | null;
+  icon_emoji: string | null;
+}
 
 // --- Mode ---
 export type Mode = "enhancement" | "generation";
@@ -174,7 +198,7 @@ export interface Sample {
   projectId: string;
   sceneDescription: string;
   generatedImages: GeneratedImageData[];
-  selectedService?: AIService;
+  lockedAiServiceId?: AIServiceId;
   isLocked: boolean;
   createdAt: string;
 }
@@ -190,4 +214,61 @@ export interface SelectedServices {
   dalle3: boolean;
   flux: boolean;
   nanoBanana: boolean;
+}
+
+// --- Context & Fine-tuning (Phase 7.7) ---
+
+export interface ReferenceImage {
+  id: string;
+  url: string;
+  filename: string;
+  uploaded_at: string;
+}
+
+export interface TextDocument {
+  id: string;
+  url: string;
+  filename: string;
+  uploaded_at: string;
+}
+
+export interface ProjectContext {
+  reference_images?: ReferenceImage[];
+  text_documents?: TextDocument[];
+}
+
+// Service-specific custom parameter types
+export interface FluxCustomParams {
+  guidance?: number; // 2.0-5.0
+  num_inference_steps?: number; // 1-50
+  interval?: number; // 1.0-4.0
+  prompt_upsampling?: boolean;
+  safety_tolerance?: number; // 1-6
+}
+
+export interface NanoBananaCustomParams {
+  temperature?: number; // 0.0-2.0
+  topP?: number; // 0.0-1.0
+  topK?: number;
+  enable_search?: boolean;
+}
+
+export interface DallECustomParams {
+  quality?: "standard" | "hd";
+  style?: "natural" | "vivid";
+}
+
+export type ServiceCustomParams =
+  | FluxCustomParams
+  | NanoBananaCustomParams
+  | DallECustomParams;
+
+export interface ProjectServiceConfig {
+  id: string;
+  project_id: string;
+  ai_service_id: AIServiceId;
+  use_basic_params: boolean;
+  custom_params?: ServiceCustomParams;
+  created_at: string;
+  updated_at: string;
 }

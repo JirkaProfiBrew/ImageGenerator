@@ -51,7 +51,7 @@ export async function lockSample(
 ): Promise<SampleRow> {
   const { data: updated, error } = await supabaseAdmin
     .from("samples")
-    .update({ is_locked: true, selected_service: selectedService })
+    .update({ is_locked: true, locked_ai_service_id: selectedService })
     .eq("id", sampleId)
     .select()
     .single();

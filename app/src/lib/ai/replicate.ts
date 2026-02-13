@@ -15,6 +15,9 @@ export interface FluxGenerateOptions {
   outputQuality?: number;
   guidance?: number;
   num_inference_steps?: number;
+  interval?: number;
+  prompt_upsampling?: boolean;
+  safety_tolerance?: number;
   seed?: number | null;
   uiStyle?: string;
   qualityLevel?: QualityLevel;
@@ -50,6 +53,9 @@ export async function generateWithFluxPro(
 
     console.log("[Flux Pro] Generating...", { guidance, steps: numSteps, seed: seed ?? "none", ratio: options?.aspectRatio || "1:1" });
 
+    const safetyTolerance = options?.safety_tolerance ?? 2;
+    const promptUpsampling = options?.prompt_upsampling ?? true;
+
     const input: Record<string, unknown> = {
       prompt,
       aspect_ratio: options?.aspectRatio || "1:1",
@@ -57,9 +63,13 @@ export async function generateWithFluxPro(
       output_quality: options?.outputQuality || 90,
       guidance,
       num_inference_steps: numSteps,
-      safety_tolerance: 2,
-      prompt_upsampling: true,
+      safety_tolerance: safetyTolerance,
+      prompt_upsampling: promptUpsampling,
     };
+
+    if (options?.interval !== undefined) {
+      input.interval = options.interval;
+    }
 
     if (seed !== undefined) {
       input.seed = seed;

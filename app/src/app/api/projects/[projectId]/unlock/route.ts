@@ -36,7 +36,7 @@ export async function PATCH(
     }
 
     // Unlock: revert to draft, clear locked_sample_id
-    // Keep ai_service and consistency_seed as reference
+    // Keep ai_service_id and consistency_seed as reference
     const { data: updatedProject, error: updateError } = await supabaseAdmin
       .from("projects")
       .update({
@@ -57,7 +57,7 @@ export async function PATCH(
         .from("samples")
         .update({
           is_locked: false,
-          selected_service: null,
+          locked_ai_service_id: null,
         })
         .eq("id", project.locked_sample_id);
     }

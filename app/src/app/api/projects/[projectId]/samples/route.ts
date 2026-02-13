@@ -3,7 +3,18 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { generateWithDallE3 } from "@/lib/ai/openai";
 import { generateWithFluxPro } from "@/lib/ai/replicate";
 import { generateWithNanoBananaPro } from "@/lib/ai/google";
+import {
+  getFinalParameters,
+  type QualityLevel,
+  type CreativityLevel,
+} from "@/lib/ai/parameter-mapper";
+import {
+  loadProjectContext,
+  buildContextPromptSuffix,
+  buildGeminiImageParts,
+} from "@/lib/ai/context-helpers";
 import type { Database, Json } from "@/lib/supabase/database.types";
+import type { ProjectContext } from "@/lib/types";
 
 type ProjectRow = Database["public"]["Tables"]["projects"]["Row"];
 
@@ -16,7 +27,7 @@ export async function POST(
   try {
     const { projectId } = params;
 
-    // Fetch the project to get base_prompt
+    // Fetch the project to get base_prompt + context_config
     const { data: project, error: projectError } = await supabaseAdmin
       .from("projects")
       .select("*")
@@ -54,8 +65,51 @@ export async function POST(
 
     // Project parameter settings
     const uiStyle = project.style || "realistic";
-    const qualityLevel = project.quality_level || "standard";
-    const creativityLevel = project.creativity_level || "medium";
+    const qualityLevel = (project.quality_level || "standard") as QualityLevel;
+    const creativityLevel = (project.creativity_level || "medium") as CreativityLevel;
+
+    // --- Load project context ---
+    const contextConfig = project.context_config as ProjectContext | undefined;
+    const { referenceImages, documentText } = loadProjectContext(contextConfig);
+    console.log(
+      `[Samples] Context loaded: ${referenceImages.length} images, ${documentText.length} chars of text`
+    );
+
+    // Build context suffix for text-only services (DALL-E, Flux)
+    const contextSuffix = buildContextPromptSuffix(documentText, referenceImages.length);
+    const promptWithContext = contextSuffix ? fullPrompt + contextSuffix : fullPrompt;
+
+    // Build Gemini-compatible image parts for Nano Banana
+    const geminiImageParts = buildGeminiImageParts(referenceImages);
+
+    // --- Load service configs ---
+    type ServiceConfigMap = Record<string, {
+      use_basic_params: boolean;
+      custom_params: Record<string, unknown> | null;
+    }>;
+    const serviceConfigMap: ServiceConfigMap = {};
+
+    try {
+      type ServiceConfigRow = Database["public"]["Tables"]["project_service_configs"]["Row"];
+      const { data: configs } = (await supabaseAdmin
+        .from("project_service_configs")
+        .select("*")
+        .eq("project_id", projectId)) as { data: ServiceConfigRow[] | null; error: unknown };
+
+      if (configs) {
+        for (const cfg of configs) {
+          serviceConfigMap[cfg.ai_service_id] = {
+            use_basic_params: cfg.use_basic_params,
+            custom_params: cfg.custom_params as Record<string, unknown> | null,
+          };
+        }
+      }
+    } catch {
+      // Graceful - service configs are optional
+    }
+
+    const configCount = Object.keys(serviceConfigMap).length;
+    console.log(`[Samples] Service configs loaded: ${configCount} custom configs`);
 
     // Map aspect ratio for DALL-E size
     const dalleSize: "1024x1024" | "1024x1792" | "1792x1024" =
@@ -73,7 +127,7 @@ export async function POST(
       | "4:3"
       | "3:2";
 
-    // Generate with selected AI services in parallel, each with independent timing
+    // Generate with selected AI services in parallel
     interface TimedResult {
       key: string;
       result: { success: boolean; imageUrl?: string; error?: string };
@@ -82,12 +136,21 @@ export async function POST(
 
     const apiCalls: Promise<TimedResult>[] = [];
 
+    // --- DALL-E 3 ---
     if (services.dalle3) {
       apiCalls.push(
         (async () => {
           const t = Date.now();
-          const result = await generateWithDallE3(fullPrompt, {
+          const finalParams = getFinalParameters(
+            serviceConfigMap["openai_dalle3"] ?? null,
+            uiStyle, qualityLevel, creativityLevel,
+            "openai_dalle3"
+          );
+          const result = await generateWithDallE3(promptWithContext, {
             size: dalleSize,
+            quality: (finalParams.quality as "standard" | "hd") || undefined,
+            style: (finalParams.style as "natural" | "vivid") || undefined,
+            // Still pass UI params as fallback for basic mapping
             uiStyle,
             qualityLevel,
             creativityLevel,
@@ -99,18 +162,31 @@ export async function POST(
       );
     }
 
+    // --- Flux Pro ---
     if (services.flux) {
       apiCalls.push(
         (async () => {
           const t = Date.now();
-          const result = await generateWithFluxPro(fullPrompt, {
+          const finalParams = getFinalParameters(
+            serviceConfigMap["replicate_flux"] ?? null,
+            uiStyle, qualityLevel, creativityLevel,
+            "replicate_flux",
+            project.consistency_seed
+          );
+          const result = await generateWithFluxPro(promptWithContext, {
             aspectRatio: fluxRatio,
             outputFormat: "png",
             outputQuality: 90,
+            guidance: finalParams.guidance as number | undefined,
+            num_inference_steps: finalParams.num_inference_steps as number | undefined,
+            interval: finalParams.interval as number | undefined,
+            prompt_upsampling: finalParams.prompt_upsampling as boolean | undefined,
+            safety_tolerance: finalParams.safety_tolerance as number | undefined,
+            seed: (finalParams.seed as number | undefined) ?? project.consistency_seed,
+            // Still pass UI params as fallback for basic mapping
             uiStyle,
             qualityLevel,
             creativityLevel,
-            seed: project.consistency_seed,
           });
           const time = Math.round((Date.now() - t) / 1000);
           console.log(`[Samples] Flux Pro completed in ${time}s`);
@@ -119,11 +195,27 @@ export async function POST(
       );
     }
 
+    // --- Nano Banana Pro ---
     if (services.nanoBanana) {
       apiCalls.push(
         (async () => {
           const t = Date.now();
+          const finalParams = getFinalParameters(
+            serviceConfigMap["google_nano_banana"] ?? null,
+            uiStyle, qualityLevel, creativityLevel,
+            "google_nano_banana"
+          );
           const result = await generateWithNanoBananaPro(fullPrompt, {
+            temperature: finalParams.temperature as number | undefined,
+            imageSize: finalParams.imageSize as "1K" | "2K" | "4K" | undefined,
+            thinkingLevel: finalParams.thinkingLevel as "minimal" | "low" | "medium" | "high" | undefined,
+            topP: finalParams.topP as number | undefined,
+            topK: finalParams.topK as number | undefined,
+            enableSearch: finalParams.enable_search as boolean | undefined,
+            // Reference images and text context (Gemini multimodal)
+            referenceImageParts: geminiImageParts,
+            contextText: documentText || undefined,
+            // Still pass UI params as fallback for basic mapping
             uiStyle,
             qualityLevel,
             creativityLevel,

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         user_id: MOCK_USER_ID,
         name,
         base_prompt: null,
-        ai_service: null,
+        ai_service_id: null,
         default_ratio: "1:1",
         mode: "generation" as const,
         style: "realistic",

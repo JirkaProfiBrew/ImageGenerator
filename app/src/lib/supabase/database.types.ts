@@ -9,6 +9,72 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      ai_services: {
+        Row: {
+          id: string;
+          name: string;
+          provider: string;
+          status: "active" | "beta" | "deprecated" | "disabled";
+          is_available: boolean;
+          base_cost_credits: number;
+          supports_reference_images: boolean;
+          max_reference_images: number;
+          supports_text_context: boolean;
+          supports_seed: boolean;
+          supports_custom_params: boolean;
+          available_params: Json | null;
+          default_params: Json | null;
+          sort_order: number;
+          display_name: string | null;
+          description: string | null;
+          icon_emoji: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          provider: string;
+          status?: "active" | "beta" | "deprecated" | "disabled";
+          is_available?: boolean;
+          base_cost_credits: number;
+          supports_reference_images?: boolean;
+          max_reference_images?: number;
+          supports_text_context?: boolean;
+          supports_seed?: boolean;
+          supports_custom_params?: boolean;
+          available_params?: Json | null;
+          default_params?: Json | null;
+          sort_order?: number;
+          display_name?: string | null;
+          description?: string | null;
+          icon_emoji?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          provider?: string;
+          status?: "active" | "beta" | "deprecated" | "disabled";
+          is_available?: boolean;
+          base_cost_credits?: number;
+          supports_reference_images?: boolean;
+          max_reference_images?: number;
+          supports_text_context?: boolean;
+          supports_seed?: boolean;
+          supports_custom_params?: boolean;
+          available_params?: Json | null;
+          default_params?: Json | null;
+          sort_order?: number;
+          display_name?: string | null;
+          description?: string | null;
+          icon_emoji?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       users: {
         Row: {
           id: string;
@@ -48,7 +114,7 @@ export interface Database {
           user_id: string;
           name: string;
           mode: "enhancement" | "generation";
-          ai_service: "openai_dalle3" | "replicate_flux" | "google_nano_banana" | null;
+          ai_service_id: string | null;
           total_images: number;
           total_credits_spent: number;
           status:
@@ -67,6 +133,7 @@ export interface Database {
           quality_level: "standard" | "high" | "ultra";
           creativity_level: "low" | "medium" | "high";
           consistency_seed: number | null;
+          context_config: Json;
           created_at: string;
           updated_at: string;
         };
@@ -75,7 +142,7 @@ export interface Database {
           user_id: string;
           name: string;
           mode: "enhancement" | "generation";
-          ai_service?: "openai_dalle3" | "replicate_flux" | "google_nano_banana" | null;
+          ai_service_id?: string | null;
           total_images?: number;
           total_credits_spent?: number;
           status?:
@@ -94,6 +161,7 @@ export interface Database {
           quality_level?: "standard" | "high" | "ultra";
           creativity_level?: "low" | "medium" | "high";
           consistency_seed?: number | null;
+          context_config?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -102,7 +170,7 @@ export interface Database {
           user_id?: string;
           name?: string;
           mode?: "enhancement" | "generation";
-          ai_service?: "openai_dalle3" | "replicate_flux" | "google_nano_banana" | null;
+          ai_service_id?: string | null;
           total_images?: number;
           total_credits_spent?: number;
           status?:
@@ -121,6 +189,7 @@ export interface Database {
           quality_level?: "standard" | "high" | "ultra";
           creativity_level?: "low" | "medium" | "high";
           consistency_seed?: number | null;
+          context_config?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -132,7 +201,7 @@ export interface Database {
           project_id: string;
           scene_description: string;
           generated_images: Json;
-          selected_service: string | null;
+          locked_ai_service_id: string | null;
           is_locked: boolean;
           created_at: string;
         };
@@ -141,7 +210,7 @@ export interface Database {
           project_id: string;
           scene_description: string;
           generated_images?: Json;
-          selected_service?: string | null;
+          locked_ai_service_id?: string | null;
           is_locked?: boolean;
           created_at?: string;
         };
@@ -150,7 +219,7 @@ export interface Database {
           project_id?: string;
           scene_description?: string;
           generated_images?: Json;
-          selected_service?: string | null;
+          locked_ai_service_id?: string | null;
           is_locked?: boolean;
           created_at?: string;
         };
@@ -163,7 +232,7 @@ export interface Database {
           product_name: string;
           source_image_url: string | null;
           generated_image_url: string | null;
-          ai_service: string;
+          ai_service_id: string;
           mode: "enhancement" | "generation";
           credits_spent: number;
           status: "pending" | "processing" | "completed" | "failed";
@@ -175,7 +244,7 @@ export interface Database {
           product_name: string;
           source_image_url?: string | null;
           generated_image_url?: string | null;
-          ai_service: string;
+          ai_service_id: string;
           mode: "enhancement" | "generation";
           credits_spent: number;
           status?: "pending" | "processing" | "completed" | "failed";
@@ -187,7 +256,7 @@ export interface Database {
           product_name?: string;
           source_image_url?: string | null;
           generated_image_url?: string | null;
-          ai_service?: string;
+          ai_service_id?: string;
           mode?: "enhancement" | "generation";
           credits_spent?: number;
           status?: "pending" | "processing" | "completed" | "failed";
@@ -274,7 +343,7 @@ export interface Database {
           sample_id: string | null;
           job_id: string | null;
           image_url: string;
-          ai_service: string;
+          ai_service_id: string;
           prompt_used: string;
           scene_description: string | null;
           generation_time: number | null;
@@ -290,7 +359,7 @@ export interface Database {
           sample_id?: string | null;
           job_id?: string | null;
           image_url: string;
-          ai_service: string;
+          ai_service_id: string;
           prompt_used?: string;
           scene_description?: string | null;
           generation_time?: number | null;
@@ -306,7 +375,7 @@ export interface Database {
           sample_id?: string | null;
           job_id?: string | null;
           image_url?: string;
-          ai_service?: string;
+          ai_service_id?: string;
           prompt_used?: string;
           scene_description?: string | null;
           generation_time?: number | null;
@@ -315,6 +384,36 @@ export interface Database {
           image_type?: "sample" | "bulk";
           is_favorite?: boolean;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      project_service_configs: {
+        Row: {
+          id: string;
+          project_id: string;
+          ai_service_id: string;
+          use_basic_params: boolean;
+          custom_params: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          ai_service_id: string;
+          use_basic_params?: boolean;
+          custom_params?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          ai_service_id?: string;
+          use_basic_params?: boolean;
+          custom_params?: Json | null;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -370,6 +469,36 @@ export interface Database {
           credits_reserved?: number;
           credits_refunded?: number;
           error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      user_service_preferences: {
+        Row: {
+          id: string;
+          user_id: string;
+          ai_service_id: string;
+          is_enabled: boolean;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          ai_service_id: string;
+          is_enabled?: boolean;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          ai_service_id?: string;
+          is_enabled?: boolean;
+          sort_order?: number;
           created_at?: string;
           updated_at?: string;
         };

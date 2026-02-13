@@ -13,9 +13,17 @@ const API_URL =
 export interface GoogleGenerateOptions {
   aspectRatio?: string;
   temperature?: number;
+  imageSize?: NanoBananaImageSize;
+  thinkingLevel?: NanoBananaThinkingLevel;
+  topP?: number;
+  topK?: number;
+  enableSearch?: boolean;
   uiStyle?: string;
   qualityLevel?: QualityLevel;
   creativityLevel?: CreativityLevel;
+  // Context & reference images
+  referenceImageParts?: { inline_data: { mime_type: string; data: string } }[];
+  contextText?: string;
 }
 
 export interface GoogleResult {
@@ -50,45 +58,88 @@ export async function generateWithNanoBananaPro(
 ): Promise<GoogleResult> {
   try {
     let temperature = options?.temperature ?? 1.0;
-    let imageSize: NanoBananaImageSize = "1K";
-    let thinkingLevel: NanoBananaThinkingLevel = "minimal";
+    let imageSize: NanoBananaImageSize = options?.imageSize ?? "1K";
+    let thinkingLevel: NanoBananaThinkingLevel = options?.thinkingLevel ?? "minimal";
 
+    // Auto-map from UI params if provided (and no direct params given)
     if (options?.uiStyle && options?.qualityLevel && options?.creativityLevel) {
-      const params = getNanaBananaParameters(
-        options.uiStyle,
-        options.qualityLevel,
-        options.creativityLevel
-      );
-      temperature = params.temperature;
-      imageSize = params.imageSize;
-      thinkingLevel = params.thinkingLevel;
+      if (!options.temperature && !options.imageSize && !options.thinkingLevel) {
+        const params = getNanaBananaParameters(
+          options.uiStyle,
+          options.qualityLevel,
+          options.creativityLevel
+        );
+        temperature = params.temperature;
+        imageSize = params.imageSize;
+        thinkingLevel = params.thinkingLevel;
+      }
     }
 
-    console.log("[Nano Banana] Generating...", { temperature, imageSize, thinkingLevel });
+    const refImageCount = options?.referenceImageParts?.length ?? 0;
+    console.log("[Nano Banana] Generating...", {
+      temperature,
+      imageSize,
+      thinkingLevel,
+      refImages: refImageCount,
+      hasContext: !!options?.contextText,
+      search: options?.enableSearch ?? false,
+    });
+
+    // Build content parts: text prompt + optional reference images
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contentParts: any[] = [];
+
+    // Build prompt text with optional context
+    let finalPrompt = `Generate an image: ${prompt}`;
+    if (options?.contextText) {
+      finalPrompt += `\n\nCONTEXT:\n${options.contextText}`;
+    }
+    contentParts.push({ text: finalPrompt });
+
+    // Add reference images as inline_data (Gemini supports multi-modal input)
+    if (options?.referenceImageParts && options.referenceImageParts.length > 0) {
+      for (const part of options.referenceImageParts) {
+        contentParts.push(part);
+      }
+      console.log(`[Nano Banana] Added ${options.referenceImageParts.length} reference images`);
+    }
+
+    // Build generation config
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const generationConfig: any = {
+      temperature,
+      candidateCount: 1,
+      responseModalities: ["TEXT", "IMAGE"],
+      imageConfig: { imageSize },
+      thinkingConfig: { thinkingLevel },
+    };
+
+    if (options?.topP !== undefined) {
+      generationConfig.topP = options.topP;
+    }
+    if (options?.topK !== undefined) {
+      generationConfig.topK = options.topK;
+    }
+
+    // Build request body
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const requestBody: any = {
+      contents: [{ parts: contentParts }],
+      generationConfig,
+    };
+
+    // Google Search grounding
+    if (options?.enableSearch) {
+      requestBody.tools = [{ google_search: {} }];
+      console.log("[Nano Banana] Google Search grounding enabled");
+    }
 
     const response = await fetch(`${API_URL}?key=${GOOGLE_AI_API_KEY}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: `Generate an image: ${prompt}` }],
-          },
-        ],
-        generationConfig: {
-          temperature,
-          candidateCount: 1,
-          responseModalities: ["TEXT", "IMAGE"],
-          imageConfig: {
-            imageSize,
-          },
-          thinkingConfig: {
-            thinkingLevel,
-          },
-        },
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {

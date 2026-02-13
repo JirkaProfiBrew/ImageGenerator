@@ -56,7 +56,7 @@ export async function PATCH(
       .from("samples")
       .update({
         is_locked: true,
-        selected_service,
+        locked_ai_service_id: selected_service,
       })
       .eq("id", sampleId);
 
@@ -71,7 +71,7 @@ export async function PATCH(
       .update({
         status: "queued" as const,
         locked_sample_id: sampleId,
-        ai_service: selected_service,
+        ai_service_id: selected_service,
         consistency_seed: consistencySeed,
         updated_at: new Date().toISOString(),
       })

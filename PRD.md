@@ -1,10 +1,10 @@
 ﻿# PRODUCT REQUIREMENTS DOCUMENT (PRD)
 ## Bulk AI Image Platform - Dual-Mode Multi-Provider Testing
 
-**Verze:** 2.3
+**Verze:** 2.4
 **Datum:** Únor 13, 2026
 **Status:** Draft - Living Document
-**Last Updated:** Phase 7.6 completed - Parameter Optimization & UX improvements
+**Last Updated:** Phase 7.7.5 - Apply Context & Fine-tuning in Sample Generation
 **Product Owner:** [Vaše jméno]
 
 ---
@@ -1577,6 +1577,10 @@ quality_level: enum ('standard', 'high', 'ultra') DEFAULT 'standard'
 creativity_level: enum ('low', 'medium', 'high') DEFAULT 'medium'
 consistency_seed: integer -- For Flux Pro consistency in bulk generation
 
+-- Phase 7.7 additions
+context_config: jsonb DEFAULT '{}' -- Reference images and text documents
+-- Example: { reference_images: [{id, url, filename, uploaded_at}], text_documents: [{id, url, filename, uploaded_at}] }
+
 status: enum ('draft', 'queued', 'processing', 'completed', 'failed', 'cancelled')
 locked_sample_id: uuid (FK → samples, nullable) -- Sample that defined the locked style
 total_images: integer DEFAULT 0
@@ -1624,6 +1628,27 @@ is_favorite: boolean DEFAULT false
 
 created_at: timestamptz
 -- Indexes: project_id, sample_id, image_type
+```
+
+**Project Service Configs Table (Phase 7.7):**
+```sql
+-- Per-service fine-tuning configuration
+id: uuid (PK)
+project_id: uuid (FK → projects) ON DELETE CASCADE
+ai_service: enum ('openai_dalle3', 'replicate_flux', 'google_nano_banana')
+
+use_basic_params: boolean DEFAULT true
+-- true = use project's quality_level/creativity_level (mapped to service params)
+-- false = use custom_params below
+
+custom_params: jsonb
+-- Flux: { guidance, num_inference_steps, interval, prompt_upsampling, safety_tolerance }
+-- Nano Banana: { temperature, topP, topK, enable_search }
+-- DALL-E: { quality, style }
+
+created_at: timestamptz
+updated_at: timestamptz
+UNIQUE(project_id, ai_service)
 ```
 
 **Update Jobs Table (Phase 7.5):**
@@ -2976,6 +3001,62 @@ This Month:
 ---
 
 ## 14. CHANGELOG
+
+### Version 2.4 (February 13, 2026) - Phase 7.7 Context & Fine-tuning
+
+**Phase 7.7.5 - Apply Context & Fine-tuning in Sample Generation**
+- **NOVÉ:** `context-helpers.ts`: load project context (decode base64 documents, extract ref images)
+- **NOVÉ:** `buildContextPromptSuffix`: appends document text and image references to prompts for DALL-E/Flux
+- **NOVÉ:** `buildGeminiImageParts`: extracts inline_data parts from base64 reference images for Gemini
+- **NOVÉ:** `getFinalParameters`: unified function returns custom params or basic-mapped params per service
+- **AKTUALIZOVÁNO:** Samples API loads `context_config` and `project_service_configs` before generation
+- **AKTUALIZOVÁNO:** Nano Banana Pro: receives reference images as multimodal inline_data (up to 14) + text context + topP/topK + Google Search grounding
+- **AKTUALIZOVÁNO:** Flux Pro: receives text context in prompt + custom params (interval, prompt_upsampling, safety_tolerance)
+- **AKTUALIZOVÁNO:** DALL-E 3: receives text context in prompt + custom quality/style params
+- **NOVÉ:** Console logging for context usage and parameter source (custom vs basic)
+
+**Phase 7.7.4 - Service Config API Endpoints**
+- **NOVÉ:** Single-service config endpoint: GET `/api/projects/[projectId]/service-configs/[service]`
+- **NOVÉ:** DELETE endpoint to reset service config to basic params
+- **NOVÉ:** Graceful error handling (PGRST116 for not found, missing table fallbacks)
+- **NOVÉ:** Validation of `ai_service` parameter against allowed values (`dalle`, `flux-pro`, `nano-banana`)
+- **NOVÉ:** Full CRUD coverage: list all (GET), upsert (POST), get single (GET), delete (DELETE)
+
+**Phase 7.7.3 - Service Fine-tuning Modals**
+- **NOVÉ:** `ServiceFineTuningModal` component with per-service advanced parameter configuration
+- **NOVÉ:** Flux Pro fine-tuning: guidance scale, inference steps, interval, prompt upsampling toggle, safety tolerance level
+- **NOVÉ:** Nano Banana Pro fine-tuning: temperature, topP, topK, Google Search grounding toggle
+- **NOVÉ:** DALL-E 3 fine-tuning: quality (standard/hd), style (natural/vivid)
+- **NOVÉ:** `/api/projects/[projectId]/service-configs` endpoint (GET list, POST upsert per service)
+- **NOVÉ:** Fine-tuning section in project detail page with per-service config cards
+- **NOVÉ:** Modal UI with labeled sliders, toggles, and select inputs for each parameter
+- **AKTUALIZOVÁNO:** Project detail page includes fine-tuning section for locked and draft projects
+- **AKTUALIZOVÁNO:** Service configs persist via `project_service_configs` table (from Phase 7.7.1 schema)
+
+**Phase 7.7.2 - Context Upload UI**
+- **NOVÉ:** `ProjectContextUpload` component for reference images and text documents
+- **NOVÉ:** Reference image upload with grid preview (max 14, 10MB each)
+- **NOVÉ:** Text document upload (.txt, .md, .pdf) with list view
+- **NOVÉ:** Context persists in project `context_config` JSONB column
+- **NOVÉ:** Context summary display when not editing
+- **NOVÉ:** File validation (type + size) with error feedback
+- **AKTUALIZOVÁNO:** Project PATCH endpoint accepts `context_config`
+- **AKTUALIZOVÁNO:** Project detail page includes context upload in edit mode
+- **AKTUALIZOVÁNO:** Auto-save includes context in both explicit save and generate-save flows
+- **POZN:** MVP stores files as base64 data URLs in JSONB. Migration to Supabase Storage planned for scale.
+
+**Phase 7.7.1 - Context & Fine-tuning Database Schema**
+- **NOVÉ:** `context_config` JSONB column in projects table (reference images + text documents)
+- **NOVÉ:** `project_service_configs` table for per-service fine-tuning
+- **NOVÉ:** Support for reference images (up to 14 for Nano Banana Pro)
+- **NOVÉ:** Support for text documents (.txt, .md, .pdf)
+- **NOVÉ:** Per-service custom params: Flux (guidance, steps, interval), Nano Banana (temperature, topP, topK), DALL-E (quality, style)
+- **NOVÉ:** TypeScript types: ProjectContext, ReferenceImage, TextDocument, FluxCustomParams, NanoBananaCustomParams, DallECustomParams, ProjectServiceConfig
+- **NOVÉ:** Migration: `20260213000000_add_context_and_finetuning.sql`
+- **AKTUALIZOVÁNO:** Nano Banana Pro API now sends imageSize and thinkingLevel parameters
+- **AKTUALIZOVÁNO:** Parameter mapper returns imageSize and thinkingLevel for Nano Banana
+
+---
 
 ### Version 2.3 (February 13, 2026) - Phase 7.5-7.6 Implementation Complete
 

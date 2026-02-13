@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       user_id: userId,
       name: `${mode} - ${new Date().toLocaleString()}`,
       mode,
-      ai_service: aiService,
+      ai_service_id: aiService,
       total_images: items.length,
       settings: settings ?? {},
     });

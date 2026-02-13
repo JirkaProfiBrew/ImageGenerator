@@ -18,7 +18,7 @@ interface ProjectListItem {
   name: string;
   status: string;
   base_prompt: string | null;
-  ai_service: AIService | null;
+  ai_service_id: AIService | null;
   default_ratio: string;
   created_at: string;
 }
@@ -142,7 +142,7 @@ export default function ProjectsPage() {
                     {truncateText(project.base_prompt ?? "", 100)}
                   </p>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>{(project.ai_service && AI_SERVICE_LABELS[project.ai_service]) ?? project.ai_service ?? "Not set"}</span>
+                    <span>{(project.ai_service_id && AI_SERVICE_LABELS[project.ai_service_id as keyof typeof AI_SERVICE_LABELS]) ?? project.ai_service_id ?? "Not set"}</span>
                     <span>&middot;</span>
                     <span>{project.default_ratio}</span>
                   </div>

@@ -123,6 +123,43 @@ export function getNanaBananaParameters(
 }
 
 // ============================================
+// Unified Final Parameters (custom config or basic mapping)
+// ============================================
+
+/**
+ * Returns final parameters for a service.
+ * If a custom config exists (use_basic_params=false), returns custom_params.
+ * Otherwise, maps from UI quality/creativity levels.
+ */
+export function getFinalParameters(
+  serviceConfig: { use_basic_params: boolean; custom_params?: Record<string, unknown> | null } | null,
+  uiStyle: string,
+  qualityLevel: QualityLevel,
+  creativityLevel: CreativityLevel,
+  aiService: string,
+  consistencySeed?: number | null
+): Record<string, unknown> {
+  // Custom config overrides basic mapping
+  if (serviceConfig && !serviceConfig.use_basic_params && serviceConfig.custom_params) {
+    console.log(`[${aiService}] Using custom parameters:`, serviceConfig.custom_params);
+    return serviceConfig.custom_params;
+  }
+
+  // Basic mapping from UI levels
+  console.log(`[${aiService}] Using basic parameters (mapped from ${qualityLevel}/${creativityLevel})`);
+
+  if (aiService === "openai_dalle3") {
+    return { ...getDallE3Parameters(uiStyle, qualityLevel, creativityLevel) };
+  } else if (aiService === "replicate_flux") {
+    return { ...getFluxProParameters(uiStyle, qualityLevel, creativityLevel, consistencySeed) };
+  } else if (aiService === "google_nano_banana") {
+    return { ...getNanaBananaParameters(uiStyle, qualityLevel, creativityLevel) };
+  }
+
+  return {};
+}
+
+// ============================================
 // Consistency Seed Generator
 // ============================================
 
