@@ -16,19 +16,34 @@ export function ProjectContextUpload({
   disabled = false,
 }: ProjectContextUploadProps) {
   const [uploading, setUploading] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const refImages = context.reference_images ?? [];
   const textDocs = context.text_documents ?? [];
 
-  // Convert file to base64 data URL (MVP - stores inline in JSONB)
-  const fileToDataUrl = (file: File): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+  // Upload file via /api/upload → Supabase Storage
+  const uploadFile = async (
+    file: File,
+    type: "reference_image" | "text_document"
+  ): Promise<{ url: string; filename: string }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("type", type);
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
     });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Upload failed");
+    }
+
+    return data;
+  };
 
   // Upload reference images
   const handleImageUpload = async (
@@ -56,12 +71,13 @@ export function ProjectContextUpload({
           throw new Error(`${file.name} exceeds 10MB limit`);
         }
 
-        const dataUrl = await fileToDataUrl(file);
+        setUploadingFile(file.name);
+        const data = await uploadFile(file, "reference_image");
 
         newImages.push({
           id: crypto.randomUUID(),
-          url: dataUrl,
-          filename: file.name,
+          url: data.url,
+          filename: data.filename,
           uploaded_at: new Date().toISOString(),
         });
       }
@@ -73,10 +89,11 @@ export function ProjectContextUpload({
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Upload failed";
+      console.error("[Context] Image upload error:", message);
       setUploadError(message);
     } finally {
       setUploading(false);
-      // Reset input so same file can be re-selected
+      setUploadingFile(null);
       e.target.value = "";
     }
   };
@@ -106,12 +123,13 @@ export function ProjectContextUpload({
           throw new Error(`${file.name} exceeds 10MB limit`);
         }
 
-        const dataUrl = await fileToDataUrl(file);
+        setUploadingFile(file.name);
+        const data = await uploadFile(file, "text_document");
 
         newDocs.push({
           id: crypto.randomUUID(),
-          url: dataUrl,
-          filename: file.name,
+          url: data.url,
+          filename: data.filename,
           uploaded_at: new Date().toISOString(),
         });
       }
@@ -123,9 +141,11 @@ export function ProjectContextUpload({
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Upload failed";
+      console.error("[Context] Document upload error:", message);
       setUploadError(message);
     } finally {
       setUploading(false);
+      setUploadingFile(null);
       e.target.value = "";
     }
   };
@@ -145,19 +165,19 @@ export function ProjectContextUpload({
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
-      <div>
-        <h3 className="font-semibold text-sm">Project Context</h3>
-        <p className="text-xs text-muted-foreground">
-          Reference images and documents used in all samples &amp; bulk
-          generation
-        </p>
-      </div>
-
+    <div className="space-y-4">
       {/* Error display */}
       {uploadError && (
         <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
           {uploadError}
+        </div>
+      )}
+
+      {/* Upload progress */}
+      {uploading && uploadingFile && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 flex items-center gap-2">
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+          Uploading: {uploadingFile}
         </div>
       )}
 

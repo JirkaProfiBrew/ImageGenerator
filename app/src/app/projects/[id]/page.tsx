@@ -163,6 +163,7 @@ export default function ProjectDetailPage() {
 
   // Context state
   const [contextConfig, setContextConfig] = useState<ProjectContext>({});
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
 
   // Service fine-tuning state
   const [serviceConfigs, setServiceConfigs] = useState<
@@ -918,32 +919,88 @@ export default function ProjectDetailPage() {
             </div>
           </div>
 
-          {/* Project Context */}
-          {editing && (
-            <ProjectContextUpload
-              context={contextConfig}
-              onContextChange={setContextConfig}
-              disabled={!editing}
-            />
-          )}
+          {/* Project Context (Collapsible) */}
+          <div className="rounded-md border">
+            <button
+              type="button"
+              onClick={() => setIsContextExpanded((prev) => !prev)}
+              className="flex w-full items-center justify-between p-3 text-left hover:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">Project Context</p>
+                {((contextConfig.reference_images?.length ?? 0) > 0 ||
+                  (contextConfig.text_documents?.length ?? 0) > 0) && (
+                  <span className="text-xs text-muted-foreground">
+                    ({contextConfig.reference_images?.length ?? 0} images, {contextConfig.text_documents?.length ?? 0} docs)
+                  </span>
+                )}
+              </div>
+              <span
+                className="text-muted-foreground transition-transform"
+                style={{
+                  display: "inline-block",
+                  transform: isContextExpanded ? "rotate(180deg)" : "rotate(0deg)",
+                }}
+              >
+                &#9660;
+              </span>
+            </button>
 
-          {/* Context summary (when not editing) */}
-          {!editing &&
-            ((contextConfig.reference_images?.length ?? 0) > 0 ||
-              (contextConfig.text_documents?.length ?? 0) > 0) && (
-              <div className="rounded-md border bg-muted/50 p-3">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Context:</strong>
-                  {(contextConfig.reference_images?.length ?? 0) > 0 &&
-                    ` ${contextConfig.reference_images!.length} reference image${contextConfig.reference_images!.length !== 1 ? "s" : ""}`}
-                  {(contextConfig.reference_images?.length ?? 0) > 0 &&
-                    (contextConfig.text_documents?.length ?? 0) > 0 &&
-                    ", "}
-                  {(contextConfig.text_documents?.length ?? 0) > 0 &&
-                    `${contextConfig.text_documents!.length} text document${contextConfig.text_documents!.length !== 1 ? "s" : ""}`}
-                </p>
+            {isContextExpanded && (
+              <div className="border-t p-3">
+                {editing ? (
+                  <ProjectContextUpload
+                    context={contextConfig}
+                    onContextChange={setContextConfig}
+                    disabled={!editing}
+                  />
+                ) : (contextConfig.reference_images?.length ?? 0) > 0 ||
+                  (contextConfig.text_documents?.length ?? 0) > 0 ? (
+                  <div className="space-y-2">
+                    {(contextConfig.reference_images?.length ?? 0) > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Reference Images ({contextConfig.reference_images!.length})
+                        </p>
+                        <div className="grid grid-cols-4 md:grid-cols-7 gap-2">
+                          {contextConfig.reference_images!.map((img) => (
+                            <div key={img.id}>
+                              <img
+                                src={img.url}
+                                alt={img.filename}
+                                className="w-full h-16 object-cover rounded border"
+                              />
+                              <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                                {img.filename}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(contextConfig.text_documents?.length ?? 0) > 0 && (
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground mb-1">
+                          Text Documents ({contextConfig.text_documents!.length})
+                        </p>
+                        <div className="space-y-1">
+                          {contextConfig.text_documents!.map((doc) => (
+                            <p key={doc.id} className="text-xs text-muted-foreground">
+                              {doc.filename}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    No context uploaded. Click Edit to add reference images or documents.
+                  </p>
+                )}
               </div>
             )}
+          </div>
 
           {/* Service Fine-tuning */}
           {isEditable && (
