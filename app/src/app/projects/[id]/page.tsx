@@ -27,6 +27,7 @@ import { AI_SERVICE_LABELS } from "@/lib/types";
 import { ImageModal } from "@/components/ImageModal";
 import { ProjectContextUpload } from "@/components/ProjectContextUpload";
 import { ServiceFineTuningModal } from "@/components/ServiceFineTuningModal";
+import { ContextGeneratorModal } from "@/components/ContextGeneratorModal";
 
 // --- Types ---
 
@@ -164,6 +165,7 @@ export default function ProjectDetailPage() {
   // Context state
   const [contextConfig, setContextConfig] = useState<ProjectContext>({});
   const [isContextExpanded, setIsContextExpanded] = useState(false);
+  const [contextGeneratorOpen, setContextGeneratorOpen] = useState(false);
 
   // Service fine-tuning state
   const [serviceConfigs, setServiceConfigs] = useState<
@@ -533,6 +535,58 @@ export default function ProjectDetailPage() {
       setSaveError(message);
     } finally {
       setSavingImageKey(null);
+    }
+  };
+
+  // --- AI context generation handler ---
+
+  const handleAIContextSave = async (text: string, filename: string) => {
+    try {
+      const blob = new Blob([text], { type: "text/plain" });
+      const file = new File([blob], filename, { type: "text/plain" });
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("type", "text_document");
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      const newDoc = {
+        id: crypto.randomUUID(),
+        url: data.url,
+        filename,
+        uploaded_at: new Date().toISOString(),
+      };
+
+      const updatedContext = {
+        ...contextConfig,
+        text_documents: [...(contextConfig.text_documents || []), newDoc],
+      };
+
+      setContextConfig(updatedContext);
+
+      // Auto-save context to project
+      await fetch(`/api/projects/${projectId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ context_config: updatedContext }),
+      });
+
+      setIsContextExpanded(true);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save AI context";
+      console.error("[AI Context] Save error:", message);
+      setGenerateError(message);
     }
   };
 
@@ -949,11 +1003,33 @@ export default function ProjectDetailPage() {
             {isContextExpanded && (
               <div className="border-t p-3">
                 {editing ? (
-                  <ProjectContextUpload
-                    context={contextConfig}
-                    onContextChange={setContextConfig}
-                    disabled={!editing}
-                  />
+                  <div className="space-y-4">
+                    <ProjectContextUpload
+                      context={contextConfig}
+                      onContextChange={setContextConfig}
+                      disabled={!editing}
+                    />
+
+                    {/* AI Context Generator */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Quick Generate</p>
+                          <p className="text-xs text-muted-foreground">
+                            Let AI create detailed context for you (1 credit)
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setContextGeneratorOpen(true)}
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        >
+                          Generate with AI
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 ) : (contextConfig.reference_images?.length ?? 0) > 0 ||
                   (contextConfig.text_documents?.length ?? 0) > 0 ? (
                   <div className="space-y-2">
@@ -1548,6 +1624,14 @@ export default function ProjectDetailPage() {
           initialParams={serviceConfigs[fineTuningService]?.custom_params ?? null}
         />
       )}
+
+      {/* Context Generator Modal */}
+      <ContextGeneratorModal
+        isOpen={contextGeneratorOpen}
+        onClose={() => setContextGeneratorOpen(false)}
+        onSave={handleAIContextSave}
+        projectId={projectId}
+      />
     </div>
   );
 }
