@@ -41,7 +41,7 @@ export async function generateWithDallE3(
       );
       quality = params.quality;
       style = params.style;
-      console.log("DALL-E 3 params:", { quality, style });
+      console.log("[DALL-E 3] params:", { quality, style, size: options?.size || "1024x1024" });
     }
 
     const response = await openai.images.generate({
@@ -58,14 +58,16 @@ export async function generateWithDallE3(
       return { success: false, error: "No image returned from DALL-E 3" };
     }
 
+    console.log("[DALL-E 3] OK, URL:", image.url.substring(0, 60) + "...");
+
     return {
       success: true,
       imageUrl: image.url,
       revisedPrompt: image.revised_prompt,
     };
   } catch (error) {
-    console.error("DALL-E 3 generation error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[DALL-E 3] Error:", message);
     return {
       success: false,
       error: message,

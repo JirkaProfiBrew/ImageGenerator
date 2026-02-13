@@ -2,6 +2,8 @@ import {
   getNanaBananaParameters,
   type QualityLevel,
   type CreativityLevel,
+  type NanoBananaImageSize,
+  type NanoBananaThinkingLevel,
 } from "./parameter-mapper";
 
 const GOOGLE_AI_API_KEY = process.env.GOOGLE_AI_API_KEY || "";
@@ -47,9 +49,9 @@ export async function generateWithNanoBananaPro(
   options?: GoogleGenerateOptions
 ): Promise<GoogleResult> {
   try {
-    console.log("Generating with Nano Banana Pro:", prompt);
-
     let temperature = options?.temperature ?? 1.0;
+    let imageSize: NanoBananaImageSize = "1K";
+    let thinkingLevel: NanoBananaThinkingLevel = "minimal";
 
     if (options?.uiStyle && options?.qualityLevel && options?.creativityLevel) {
       const params = getNanaBananaParameters(
@@ -58,8 +60,11 @@ export async function generateWithNanoBananaPro(
         options.creativityLevel
       );
       temperature = params.temperature;
-      console.log("Nano Banana params:", { temperature });
+      imageSize = params.imageSize;
+      thinkingLevel = params.thinkingLevel;
     }
+
+    console.log("[Nano Banana] Generating...", { temperature, imageSize, thinkingLevel });
 
     const response = await fetch(`${API_URL}?key=${GOOGLE_AI_API_KEY}`, {
       method: "POST",
@@ -74,7 +79,14 @@ export async function generateWithNanoBananaPro(
         ],
         generationConfig: {
           temperature,
+          candidateCount: 1,
           responseModalities: ["TEXT", "IMAGE"],
+          imageConfig: {
+            imageSize,
+          },
+          thinkingConfig: {
+            thinkingLevel,
+          },
         },
       }),
     });
@@ -88,26 +100,6 @@ export async function generateWithNanoBananaPro(
     }
 
     const data = (await response.json()) as GoogleResponse;
-
-    // DEBUG: Log entire response structure
-    console.log('=== GOOGLE API FULL RESPONSE ===');
-    console.log(JSON.stringify(data, null, 2));
-    console.log('================================');
-
-    // Also log specific parts
-    console.log('Candidates:', data.candidates?.length || 0);
-    if (data.candidates && data.candidates.length > 0) {
-      console.log('First candidate:', JSON.stringify(data.candidates[0], null, 2));
-      console.log('Content parts:', data.candidates[0].content?.parts?.length || 0);
-      if (data.candidates[0].content?.parts) {
-        data.candidates[0].content.parts.forEach((part: GooglePart, i: number) => {
-          console.log(`Part ${i} keys:`, Object.keys(part));
-          if (part.text) console.log(`Part ${i} text:`, part.text.substring(0, 200));
-          if (part.inlineData) console.log(`Part ${i} inlineData mime:`, part.inlineData.mimeType, 'data length:', part.inlineData.data?.length || 0);
-        });
-      }
-    }
-    console.log('================================');
 
     const candidates = data.candidates || [];
     if (candidates.length === 0) {
@@ -126,13 +118,15 @@ export async function generateWithNanoBananaPro(
     const { data: base64Data, mimeType } = imagePart.inlineData;
     const imageUrl = `data:${mimeType};base64,${base64Data}`;
 
+    console.log("[Nano Banana] OK, image size:", Math.round(base64Data.length / 1024) + "KB");
+
     return {
       success: true,
       imageUrl,
     };
   } catch (error) {
-    console.error("Nano Banana Pro generation error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[Nano Banana] Error:", message);
     return {
       success: false,
       error: message,

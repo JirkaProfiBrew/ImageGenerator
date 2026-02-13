@@ -36,7 +36,7 @@ export default function NewProjectPage() {
         throw new Error(json.error || "Failed to create project");
       }
 
-      router.push(`/projects/${json.project.id}`);
+      router.push(`/projects/${json.project.id}?new=true`);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to create project";

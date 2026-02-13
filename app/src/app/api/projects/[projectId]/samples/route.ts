@@ -73,47 +73,65 @@ export async function POST(
       | "4:3"
       | "3:2";
 
-    // Generate with selected AI services in parallel
-    const apiCalls: Promise<{
+    // Generate with selected AI services in parallel, each with independent timing
+    interface TimedResult {
       key: string;
       result: { success: boolean; imageUrl?: string; error?: string };
-    }>[] = [];
+      time: number;
+    }
+
+    const apiCalls: Promise<TimedResult>[] = [];
 
     if (services.dalle3) {
       apiCalls.push(
-        generateWithDallE3(fullPrompt, {
-          size: dalleSize,
-          uiStyle,
-          qualityLevel,
-          creativityLevel,
-        }).then((result) => ({ key: "dalle3", result }))
+        (async () => {
+          const t = Date.now();
+          const result = await generateWithDallE3(fullPrompt, {
+            size: dalleSize,
+            uiStyle,
+            qualityLevel,
+            creativityLevel,
+          });
+          const time = Math.round((Date.now() - t) / 1000);
+          console.log(`[Samples] DALL-E 3 completed in ${time}s`);
+          return { key: "dalle3", result, time };
+        })()
       );
     }
 
     if (services.flux) {
       apiCalls.push(
-        generateWithFluxPro(fullPrompt, {
-          aspectRatio: fluxRatio,
-          outputFormat: "png",
-          outputQuality: 90,
-          uiStyle,
-          qualityLevel,
-          creativityLevel,
-          seed: project.consistency_seed,
-        }).then((result) => ({ key: "flux", result }))
+        (async () => {
+          const t = Date.now();
+          const result = await generateWithFluxPro(fullPrompt, {
+            aspectRatio: fluxRatio,
+            outputFormat: "png",
+            outputQuality: 90,
+            uiStyle,
+            qualityLevel,
+            creativityLevel,
+            seed: project.consistency_seed,
+          });
+          const time = Math.round((Date.now() - t) / 1000);
+          console.log(`[Samples] Flux Pro completed in ${time}s`);
+          return { key: "flux", result, time };
+        })()
       );
     }
 
     if (services.nanoBanana) {
       apiCalls.push(
-        generateWithNanoBananaPro(fullPrompt, {
-          uiStyle,
-          qualityLevel,
-          creativityLevel,
-        }).then((result) => ({
-          key: "nanoBanana",
-          result,
-        }))
+        (async () => {
+          const t = Date.now();
+          const result = await generateWithNanoBananaPro(fullPrompt, {
+            uiStyle,
+            qualityLevel,
+            creativityLevel,
+          });
+          const time = Math.round((Date.now() - t) / 1000);
+          console.log(`[Samples] Nano Banana Pro completed in ${time}s`);
+          return { key: "nanoBanana", result, time };
+        })()
       );
     }
 
@@ -124,21 +142,19 @@ export async function POST(
       );
     }
 
-    const startTime = Date.now();
     const apiResults = await Promise.all(apiCalls);
-    const totalTime = Math.round((Date.now() - startTime) / 1000);
 
-    // Build generated images array
+    // Build generated images array with individual timings
     const generatedImages: { [key: string]: Json | undefined }[] = [];
 
-    for (const { key, result } of apiResults) {
+    for (const { key, result, time } of apiResults) {
       if (key === "dalle3") {
         generatedImages.push({
           aiService: "openai_dalle3",
           displayName: "DALL-E 3",
           imageUrl: result.success ? result.imageUrl : null,
           creditCost: 15,
-          generationTime: totalTime,
+          generationTime: time,
           error: result.success ? undefined : result.error,
         });
       } else if (key === "flux") {
@@ -147,7 +163,7 @@ export async function POST(
           displayName: "Flux Pro",
           imageUrl: result.success ? result.imageUrl : null,
           creditCost: 10,
-          generationTime: totalTime,
+          generationTime: time,
           error: result.success ? undefined : result.error,
         });
       } else if (key === "nanoBanana") {
@@ -156,11 +172,19 @@ export async function POST(
           displayName: "Nano Banana Pro",
           imageUrl: result.success ? result.imageUrl : null,
           creditCost: 6,
-          generationTime: totalTime,
+          generationTime: time,
           error: result.success ? undefined : result.error,
         });
       }
     }
+
+    const totalTime = generatedImages.reduce(
+      (sum, img) => sum + ((img.generationTime as number) || 0),
+      0
+    );
+    console.log(
+      `[Samples] Total: ${totalTime}s across ${generatedImages.length} services`
+    );
 
     // Save sample to database
     const { data: sample, error: sampleError } = await supabaseAdmin

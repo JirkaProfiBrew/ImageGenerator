@@ -75,13 +75,18 @@ export function getFluxProParameters(
 // Nano Banana Pro (Google) Parameters
 // ============================================
 
+export type NanoBananaImageSize = "1K" | "2K" | "4K";
+export type NanoBananaThinkingLevel = "minimal" | "low" | "medium" | "high";
+
 export interface NanoBananaParams {
   temperature: number;
+  imageSize: NanoBananaImageSize;
+  thinkingLevel: NanoBananaThinkingLevel;
 }
 
 export function getNanaBananaParameters(
   uiStyle: string,
-  _qualityLevel: QualityLevel,
+  qualityLevel: QualityLevel,
   creativityLevel: CreativityLevel
 ): NanoBananaParams {
   const tempMap: Record<CreativityLevel, number> = {
@@ -98,7 +103,23 @@ export function getNanaBananaParameters(
     temperature = Math.min(temperature + 0.3, 1.8);
   }
 
-  return { temperature };
+  const imageSizeMap: Record<QualityLevel, NanoBananaImageSize> = {
+    standard: "1K",
+    high: "2K",
+    ultra: "4K",
+  };
+
+  const thinkingMap: Record<QualityLevel, NanoBananaThinkingLevel> = {
+    standard: "minimal",
+    high: "low",
+    ultra: "medium",
+  };
+
+  return {
+    temperature,
+    imageSize: imageSizeMap[qualityLevel],
+    thinkingLevel: thinkingMap[qualityLevel],
+  };
 }
 
 // ============================================

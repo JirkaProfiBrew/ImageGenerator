@@ -1,9 +1,10 @@
 ﻿# PRODUCT REQUIREMENTS DOCUMENT (PRD)
 ## Bulk AI Image Platform - Dual-Mode Multi-Provider Testing
 
-**Verze:** 2.2
-**Datum:** Únor 2026  
-**Status:** Draft - Living Document  
+**Verze:** 2.3
+**Datum:** Únor 13, 2026
+**Status:** Draft - Living Document
+**Last Updated:** Phase 7.6 completed - Parameter Optimization & UX improvements
 **Product Owner:** [Vaše jméno]
 
 ---
@@ -860,47 +861,52 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 
 ---
 
-### Epic 3.5: Projects & Style Consistency
+### Epic 3.5: Projects & Style Consistency (Phase 7.5-7.6 - COMPLETED)
 
 **User Story 3.5.1:** Jako content creator chci vytvořit projekt s definovaným stylem, aby všechny moje generované obrázky měly konzistentní vzhled.
 
 **Acceptance Criteria:**
-- [ ] User může vytvořit nový projekt s názvem
-- [ ] User může definovat base style prompt (např. "1960s style, warm colors, film grain")
-- [ ] User může zvolit výchozí AI službu pro projekt
-- [ ] User může zvolit výchozí aspect ratio pro projekt
-- [ ] Projekt se uloží do databáze
-- [ ] User vidí projekt na dashboardu
+- [x] User může vytvořit nový projekt s názvem
+- [x] User může definovat base style prompt (např. "1960s style, warm colors, film grain")
+- [x] User může zvolit výchozí AI službu pro projekt (via lock workflow)
+- [x] User může zvolit výchozí aspect ratio pro projekt
+- [x] User může nastavit style, background, quality_level, creativity_level
+- [x] Projekt se uloží do databáze
+- [x] User vidí projekt na dashboardu
+- [x] Auto-open edit mode for new projects
 
-**Priority:** P0 (MVP - Phase 7.5)
+**Priority:** P0 (MVP - Phase 7.5) - **COMPLETED**
 
 ---
 
 **User Story 3.5.2:** Jako user chci vygenerovat ukázkový obrázek se stylem projektu před bulk generováním, abych ověřil/a, že styl vypadá dobře.
 
 **Acceptance Criteria:**
-- [ ] User zadá popis scény v rámci projektu
-- [ ] Systém zkombinuje base style projektu + popis scény do plného promptu
-- [ ] Systém vygeneruje sample s 1-3 AI službami (volitelné checkboxy)
-- [ ] User vidí side-by-side porovnání
-- [ ] User může schválit a zamknout styl, nebo iterovat na stylu projektu
-- [ ] Schválený sample se uloží jako referenční obrázek projektu
+- [x] User zadá popis scény v rámci projektu
+- [x] Systém zkombinuje base style projektu + popis scény do plného promptu
+- [x] Systém mapuje quality/creativity na AI-specific parameters (Phase 7.6)
+- [x] Systém vygeneruje sample s 1-3 AI službami (volitelné checkboxy)
+- [x] User vidí side-by-side porovnání s individual timing per service
+- [x] User může schválit a zamknout styl, nebo iterovat na stylu projektu
+- [x] Schválený sample se uloží jako referenční obrázek projektu
+- [x] User může unlock a re-lock s jiným nastavením
+- [x] User může uložit obrázky do project storage (Save to Project)
 
-**Priority:** P0 (MVP - Phase 7.5)
+**Priority:** P0 (MVP - Phase 7.5) - **COMPLETED**
 
 ---
 
 **User Story 3.5.3:** Jako developer/user chci vybrat, které AI služby testovat, abych ušetřil kredity a mohl debugovat konkrétní služby.
 
 **Acceptance Criteria:**
-- [ ] Checkboxy pro zapnutí/vypnutí DALL-E 3, Flux Pro, Nano Banana Pro
-- [ ] Alespoň jedna služba musí být vybrána (validace)
-- [ ] Celková cena v kreditech zobrazena před generováním
-- [ ] Volají se pouze vybrané služby
-- [ ] Výsledky zobrazují pouze vybrané služby
-- [ ] Default: všechny služby zapnuté
+- [x] Checkboxy pro zapnutí/vypnutí DALL-E 3, Flux Pro, Nano Banana Pro
+- [x] Alespoň jedna služba musí být vybrána (validace)
+- [x] Celková cena v kreditech zobrazena před generováním
+- [x] Volají se pouze vybrané služby
+- [x] Výsledky zobrazují pouze vybrané služby
+- [x] Default: všechny služby zapnuté
 
-**Priority:** P0 (MVP - Phase 7.5)
+**Priority:** P0 (MVP - Phase 7.5) - **COMPLETED**
 
 ---
 
@@ -916,21 +922,40 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 - [ ] Background job zpracuje všechny generování
 - [ ] Výsledky zachovávají konzistenci stylu projektu
 
-**Priority:** P0 (MVP - Phase 7.5)
+**Priority:** P0 (MVP - Phase 8 - TODO)
 
 ---
 
 **User Story 3.5.5:** Jako user chci se vrátit k existujícímu projektu a generovat další obrázky ve stejném stylu, abych mohl/a rozšířit kampaň/knihu/sérii v čase.
 
 **Acceptance Criteria:**
-- [ ] Dashboard zobrazuje všechny projekty uživatele
-- [ ] User může otevřít existující projekt
-- [ ] Projekt zobrazuje: base style, zamknuté samples, předchozí bulk joby
+- [x] Dashboard zobrazuje všechny projekty uživatele
+- [x] User může otevřít existující projekt
+- [x] Projekt zobrazuje: base style, zamknuté samples, saved images
 - [ ] User může spustit nové bulk generování ve stejném stylu
-- [ ] Nová generování používají stejná nastavení projektu (AI služba, styl, ratio)
-- [ ] User může vidět všechny obrázky z projektu napříč všemi joby
+- [x] Nová generování používají stejná nastavení projektu (AI služba, styl, ratio)
+- [x] User může vidět všechny obrázky z projektu (saved images gallery)
 
-**Priority:** P1 (Phase 7.5 - should have)
+**Priority:** P1 (Phase 7.5) - **PARTIALLY COMPLETED** (bulk pending)
+
+---
+
+**Implementation Workflow (Phase 7.5-7.6 - Actual):**
+
+```
+1. Create Project → name only → redirects with ?new=true → auto-opens edit mode
+2. Configure Project → edit: name, mode, prompt, style, background, ratio, quality, creativity
+3. Generate Sample → enter scene description → select 1-3 AI services → parallel generation
+   - System combines: base_prompt + scene + style modifiers + background modifiers
+   - Maps quality/creativity to service-specific params:
+     DALL-E: quality (standard/hd), style (natural/vivid)
+     Flux: guidance (3.5-10), steps (20-50), seed
+     Nano Banana: temperature (0.3-1.8)
+   - Shows results with: preview, timing, cost, errors, "Save to Project"
+4. Lock Style → select preferred AI → confirmation → generates consistency_seed → status: queued
+5. Unlock (optional) → revert to draft → keep seed as reference → re-test
+6. Bulk Generation → TODO Phase 8
+```
 
 ---
 
@@ -1207,14 +1232,44 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 
 ---
 
-**F. Projects & Style Consistency (Phase 7.5)**
-- [ ] Vytvoření projektu s názvem a base stylem
-- [ ] Generování style sample (1-3 AI služby, volitelné checkboxy)
-- [ ] Zamknutí stylu projektu po schválení
-- [ ] Selektivní generování služeb (checkboxy)
-- [ ] Aplikace stylu projektu na bulk generování
-- [ ] Návrat k projektu pro dodatečná generování
-- [ ] Dashboard projektů (seznam všech projektů)
+**F. Projects & Samples (Phase 7.5 - COMPLETED)**
+- [x] Create project (simplified - name only, auto-open edit mode)
+- [x] Editable project header with manual save
+  - [x] Name, Mode (generation/enhancement), Base Prompt
+  - [x] Style (realistic, illustrated, 3d, minimalist, artistic)
+  - [x] Background (white, gradient, contextual, transparent)
+  - [x] Aspect Ratio (1:1, 16:9, 9:16, 4:3, 3:2)
+  - [x] Auto-save settings before sample generation
+- [x] Generate sample (select 1-3 AI services via checkboxes)
+- [x] Side-by-side comparison with individual timing per service
+- [x] Lock style workflow
+  - [x] Unified service selection UI with quality/cost/speed comparison
+  - [x] Confirmation dialog explaining what locking does
+  - [x] Consistency seed generation (for Flux Pro bulk)
+  - [x] Project status: draft → queued (locked)
+- [x] Unlock project feature (revert to draft, keep seed as reference)
+- [x] Save sample to project storage (generated_images table)
+- [x] Image preview modal (ESC, overlay click, body scroll lock)
+- [x] Auto-open edit mode for new projects (?new=true query param)
+- [x] Dashboard with project listing
+- [x] Pre-fill scene description from most recent sample
+
+**G. AI Parameter Optimization (Phase 7.6 - COMPLETED)**
+- [x] Structured parameters instead of prompt-only generation
+- [x] Quality level: Standard, High, Ultra - affects resolution & cost
+- [x] Creativity level: Low, Medium, High - affects prompt adherence
+- [x] DALL-E 3 parameter mapping:
+  - [x] quality: standard | hd (maps from quality_level)
+  - [x] style: natural | vivid (maps from creativity_level)
+- [x] Flux Pro parameter mapping:
+  - [x] guidance: 3.5-10.0 (prompt adherence, maps from creativity_level)
+  - [x] num_inference_steps: 20-50 (quality, maps from quality_level)
+  - [x] seed: integer (consistency across bulk, generated at lock time)
+- [x] Nano Banana Pro parameter mapping:
+  - [x] temperature: 0.3-1.8 (creativity, maps from creativity_level)
+- [x] Parameter mapper utility (lib/ai/parameter-mapper.ts)
+- [x] Prompt builder utility (lib/ai/prompt-builder.ts)
+- [x] Console logging for debugging parameter mapping
 
 ---
 
@@ -1319,6 +1374,10 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 - Database: PostgreSQL (Supabase nebo Neon)
 - Queue: BullMQ (Redis-based) pro background jobs
 - Storage: Supabase Storage (MVP) → Cloudflare R2 (scale, 200+ uživatelů)
+
+**Utilities (Phase 7.6):**
+- Parameter Mapper (`lib/ai/parameter-mapper.ts`) - Maps UI settings to service-specific params
+- Prompt Builder (`lib/ai/prompt-builder.ts`) - Combines base_prompt + scene + style + background
 
 **AI Services:**
 - OpenAI DALL-E 3 API
@@ -1499,16 +1558,29 @@ expires_at: timestamp
 created_at: timestamp
 ```
 
-**Projects Table (Phase 7.5):**
+**Projects Table (Phase 7.5 + 7.6):**
 ```sql
 id: uuid (PK)
 user_id: uuid (FK → users)
 name: string (e.g., "1960s Bar Campaign")
-base_prompt: text (e.g., "1960s style, warm colors, cozy atmosphere...")
+mode: enum ('generation', 'enhancement') DEFAULT 'generation'
+base_prompt: text (nullable) -- Overall style/theme for project
 ai_service: enum ('openai_dalle3', 'replicate_flux', 'google_nano_banana')
-default_ratio: string ('1:1', '16:9', '9:16', '4:3')
-status: enum ('draft', 'locked', 'active')
-locked_sample_id: uuid (FK → samples, nullable) -- referenční obrázek pro styl
+default_ratio: string ('1:1', '16:9', '9:16', '4:3', '3:2')
+
+-- Phase 7.5 additions
+style: string DEFAULT 'realistic' -- realistic, illustrated, 3d, minimalist, artistic
+background: string DEFAULT 'white' -- white, gradient, contextual, transparent
+
+-- Phase 7.6 additions
+quality_level: enum ('standard', 'high', 'ultra') DEFAULT 'standard'
+creativity_level: enum ('low', 'medium', 'high') DEFAULT 'medium'
+consistency_seed: integer -- For Flux Pro consistency in bulk generation
+
+status: enum ('draft', 'queued', 'processing', 'completed', 'failed', 'cancelled')
+locked_sample_id: uuid (FK → samples, nullable) -- Sample that defined the locked style
+total_images: integer DEFAULT 0
+total_credits_spent: integer DEFAULT 0
 created_at: timestamp
 updated_at: timestamp
 ```
@@ -1517,11 +1589,41 @@ updated_at: timestamp
 ```sql
 id: uuid (PK)
 project_id: uuid (FK → projects)
+scene_description: text NOT NULL
+
+-- Generated results from 1-3 AI services
+generated_images: jsonb -- Array of {aiService, displayName, imageUrl, creditCost, generationTime, error}
+
+selected_service: string -- Which AI service user prefers for bulk
+is_locked: boolean DEFAULT false -- If this sample locked the project style
+created_at: timestamptz
+```
+
+**Generated Images Table (Phase 7.6):**
+```sql
+-- Stores both sample and bulk generated images permanently
+id: uuid (PK)
+project_id: uuid (FK → projects) ON DELETE CASCADE
+sample_id: uuid (FK → samples, nullable) ON DELETE SET NULL -- If from sample generation
+job_id: uuid (FK → jobs, nullable) ON DELETE SET NULL -- If from bulk generation
+
+-- Image data
+image_url: text NOT NULL
+ai_service: text NOT NULL
+prompt_used: text NOT NULL DEFAULT ''
 scene_description: text
-generated_images: jsonb [{aiService, imageUrl, creditCost}]
-selected_service: string -- kterou AI user zvolil pro bulk
-is_locked: boolean (default: false) -- je toto schválený sample?
-created_at: timestamp
+
+-- Metadata
+generation_time: integer -- seconds per service
+credit_cost: integer DEFAULT 0
+parameters: jsonb DEFAULT '{}' -- Stores quality_level, creativity_level, style, background
+
+-- Classification
+image_type: enum ('sample', 'bulk') DEFAULT 'sample'
+is_favorite: boolean DEFAULT false
+
+created_at: timestamptz
+-- Indexes: project_id, sample_id, image_type
 ```
 
 **Update Jobs Table (Phase 7.5):**
@@ -1736,32 +1838,35 @@ created_at: timestamp
 
 ---
 
-**Projects:**
-- `GET /api/projects`
-  - Query: `?mode=enhancement&page=1&limit=20&sort=date_desc`
-  - Response: `{ projects: [...], total, page }`
-  
-- `GET /api/projects/:id`
-  - Response:
-    ```json
-    {
-      "id": "uuid",
-      "name": "Q1 Catalog",
-      "mode": "enhancement",
-      "ai_service": "flux_pro",
-      "total_images": 100,
-      "total_credits_spent": 500,
-      "status": "completed",
-      "images": [...],
-      "download_url": "https://..."
-    }
-    ```
-  
+**Projects (Updated Phase 7.5-7.6):**
+- `POST /api/projects` - Create project (name only, returns draft project)
+  - Body: `{ name }`
+  - Response: `{ success, project }`
+- `GET /api/projects` - List user's projects
+  - Response: `{ success, projects: [...] }`
+- `GET /api/projects/:id` - Project detail + samples
+  - Response: `{ success, project, samples: [...] }`
+- `PATCH /api/projects/:id` - Update project settings
+  - Body: `{ name?, mode?, base_prompt?, style?, background?, default_ratio?, quality_level?, creativity_level? }`
+  - Response: `{ success, project }`
 - `DELETE /api/projects/:id`
-  - Soft delete
-  
-- `POST /api/projects/:id/duplicate`
-  - Duplicates settings pro nový projekt
+- `PATCH /api/projects/:id/unlock` - Unlock locked project (revert to draft)
+  - Response: `{ success, project }`
+
+**Samples (Phase 7.5):**
+- `POST /api/projects/:id/samples` - Generate sample with 1-3 AI services
+  - Body: `{ scene_description, selected_services: { dalle3: bool, flux: bool, nanoBanana: bool } }`
+  - Response: `{ success, sample: { id, scene_description, generated_images: [...] } }`
+- `PATCH /api/projects/:id/samples/:sampleId/lock` - Lock style + set AI service
+  - Body: `{ selected_service: 'openai_dalle3' | 'replicate_flux' | 'google_nano_banana' }`
+  - Response: `{ success, project: { status: 'queued', ai_service, consistency_seed } }`
+
+**Generated Images (Phase 7.6):**
+- `POST /api/projects/:id/images` - Save sample image to project storage
+  - Body: `{ sample_id, image_url, ai_service, prompt_used, scene_description, generation_time, credit_cost, parameters }`
+  - Response: `{ success, image }`
+- `GET /api/projects/:id/images` - Get all saved images for project
+  - Response: `{ success, images: [...] }`
 
 ---
 
@@ -1802,6 +1907,19 @@ created_at: timestamp
 - Uptime: 99.5%+ (MVP), 99.9%+ (V2)
 - Auto-retry failed generations (max 3x)
 - Backup databáze denně
+
+**AI Parameter Optimization (Phase 7.6):**
+- Quality levels map to service-specific settings:
+  - Standard: Fastest, lowest cost (DALL-E standard, Flux 25 steps, Nano Banana 1K)
+  - High: Balanced quality/speed (DALL-E hd, Flux 35 steps)
+  - Ultra: Best quality, higher cost (DALL-E hd, Flux 50 steps)
+- Creativity levels control prompt adherence:
+  - Low: Strict prompt following (guidance 9.5, temp 0.5)
+  - Medium: Balanced (guidance 7.5, temp 0.9)
+  - High: Creative interpretation (guidance 5.0, temp 1.4)
+- Consistency seeds ensure similar results across bulk generations (Flux Pro)
+- Parameter mapper: `lib/ai/parameter-mapper.ts`
+- Prompt builder: `lib/ai/prompt-builder.ts`
 
 ---
 
@@ -2652,14 +2770,25 @@ This Month:
 
 ---
 
-### Phase 7.5: Projects & Samples (Weeks 14-15)
-- [ ] Database schema pro Projects a Samples tabulky
-- [ ] Create project page (název, base style, AI služba, ratio)
-- [ ] Generate style sample se selektivními službami (checkboxy)
-- [ ] Lock project style po schválení sample
-- [ ] Update bulk generování pro použití stylu projektu
-- [ ] Project dashboard (seznam všech projektů, stav, počet obrázků)
-- [ ] Návrat k existujícímu projektu pro další generování
+### Phase 7.5: Projects & Samples - COMPLETED
+- [x] Database schema pro Projects a Samples tabulky
+- [x] Create project page (name only, auto-open edit mode)
+- [x] Editable project header (name, mode, prompt, style, background, ratio, quality, creativity)
+- [x] Generate style sample se selektivními službami (checkboxy)
+- [x] Lock project style po schválení sample (consistency seed)
+- [x] Unlock project feature
+- [x] Save sample to project storage (generated_images table)
+- [x] Image preview modal
+- [x] Project dashboard (seznam všech projektů)
+- [x] Návrat k existujícímu projektu pro další generování
+- [ ] Update bulk generování pro použití stylu projektu (Phase 8)
+
+### Phase 7.6: Parameter Optimization - COMPLETED
+- [x] quality_level, creativity_level, consistency_seed columns
+- [x] Parameter mapper utility (DALL-E, Flux, Nano Banana)
+- [x] Prompt builder utility
+- [x] Individual service timing measurement
+- [x] Console logging cleanup
 
 ---
 
@@ -2689,11 +2818,11 @@ This Month:
 - Podporovat HEIC, WebP?
 - **Decision:** [TBD]
 
-**Q5: Jak řešit konzistenci across bulk job?**
+**Q5: Jak řešit konzistenci across bulk job?** ✅ RESOLVED
 - User chce stejný "feel" napříč 100 obrázky
-- Option A: První obrázek set seed → use same seed
-- Option B: "Consistency mode" toggle (může být dražší)
-- **Decision:** [TBD - explore in beta]
+- ~~Option A: První obrázek set seed → use same seed~~
+- ~~Option B: "Consistency mode" toggle (může být dražší)~~
+- **Decision:** Consistency seeds (Phase 7.6) - při lock style se vygeneruje random seed pro Flux Pro, který se aplikuje na všechna bulk generování. DALL-E a Nano Banana Pro nemají seed, konzistence se řeší přes stejné parametry (quality, style).
 
 ---
 
@@ -2848,14 +2977,44 @@ This Month:
 
 ## 14. CHANGELOG
 
-### Version 2.3 (Únor 2026) - Projects & Style Consistency
-- **NOVÉ:** Epic 3.5: Projects & Style Consistency (5 user stories: 3.5.1-3.5.5)
-- **NOVÉ:** Feature section F: Projects & Style Consistency (Phase 7.5)
-- **NOVÉ:** DB schema: Projects table, Samples table, Jobs.project_id
-- **NOVÉ:** API endpointy: /api/projects, /api/projects/:id/samples
-- **NOVÉ:** Selektivní generování AI služeb (checkboxy DALL-E/Flux/Banana)
-- **NOVÉ:** Phase 7.5 v roadmapě (Weeks 14-15)
-- **NOVÉ:** KPIs pro Project Usage metriky
+### Version 2.3 (February 13, 2026) - Phase 7.5-7.6 Implementation Complete
+
+**Phase 7.6 Completed - Parameter Optimization & UX Improvements**
+- **IMPLEMENTOVÁNO:** quality_level, creativity_level, consistency_seed columns
+- **IMPLEMENTOVÁNO:** Structured AI parameters (DALL-E quality/style, Flux guidance/steps/seed, Nano Banana temperature)
+- **IMPLEMENTOVÁNO:** Parameter mapper utility (`lib/ai/parameter-mapper.ts`)
+- **IMPLEMENTOVÁNO:** Prompt builder utility (`lib/ai/prompt-builder.ts`)
+- **IMPLEMENTOVÁNO:** generated_images table for storing samples + bulk images
+- **IMPLEMENTOVÁNO:** Save sample to project feature (Save to Project button)
+- **IMPLEMENTOVÁNO:** Image preview modal (ESC, overlay click, body scroll lock)
+- **IMPLEMENTOVÁNO:** Individual service timing measurement
+- **IMPLEMENTOVÁNO:** Unlock project feature (revert locked → draft)
+- **IMPLEMENTOVÁNO:** Auto-open edit mode for new projects (?new=true)
+- **IMPLEMENTOVÁNO:** Pre-fill scene description from most recent sample
+- **IMPLEMENTOVÁNO:** Regenerate Sample button rename when samples exist
+- **ROZHODNUTO:** Q5 (Consistency) — Consistency seeds for Flux Pro at lock time
+- **NOVÉ:** Generated Images table + migration
+- **NOVÉ:** API endpoints: /unlock, /images (POST + GET)
+- **NOVÉ:** Feature section G: AI Parameter Optimization
+- **AKTUALIZOVÁNO:** Projects table schema (+ style, background, quality_level, creativity_level, consistency_seed)
+- **AKTUALIZOVÁNO:** Samples table schema (+ generationTime, displayName in JSONB)
+- **AKTUALIZOVÁNO:** API endpoints documentation
+- **AKTUALIZOVÁNO:** Epic 3.5 acceptance criteria marked as completed
+
+**Phase 7.5 Completed - Projects & Samples**
+- **IMPLEMENTOVÁNO:** Simplified project creation (name only)
+- **IMPLEMENTOVÁNO:** Editable project header (8 fields + auto-save before generation)
+- **IMPLEMENTOVÁNO:** generation_mode, style, background columns
+- **IMPLEMENTOVÁNO:** Sample generation with 1-3 AI services (parallel)
+- **IMPLEMENTOVÁNO:** Unified lock style workflow with confirmation
+- **IMPLEMENTOVÁNO:** Consistency seed generation for Flux Pro
+- **IMPLEMENTOVÁNO:** Samples table with generated_images JSONB
+- **IMPLEMENTOVÁNO:** Lock/unlock workflow
+- **NOVÉ:** Epic 3.5 user stories (3.5.1-3.5.5)
+- **NOVÉ:** Feature section F: Projects & Samples
+- **NOVÉ:** DB schema: Projects table (extended), Samples table, Jobs.project_id
+- **NOVÉ:** API endpoints: /api/projects, /api/projects/:id/samples, /samples/:id/lock
+- **NOVÉ:** Phase 7.5 + 7.6 in roadmap
 
 ---
 

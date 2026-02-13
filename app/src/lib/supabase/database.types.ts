@@ -267,6 +267,57 @@ export interface Database {
         };
         Relationships: [];
       };
+      generated_images: {
+        Row: {
+          id: string;
+          project_id: string;
+          sample_id: string | null;
+          job_id: string | null;
+          image_url: string;
+          ai_service: string;
+          prompt_used: string;
+          scene_description: string | null;
+          generation_time: number | null;
+          credit_cost: number;
+          parameters: Json;
+          image_type: "sample" | "bulk";
+          is_favorite: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          sample_id?: string | null;
+          job_id?: string | null;
+          image_url: string;
+          ai_service: string;
+          prompt_used?: string;
+          scene_description?: string | null;
+          generation_time?: number | null;
+          credit_cost?: number;
+          parameters?: Json;
+          image_type?: "sample" | "bulk";
+          is_favorite?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          project_id?: string;
+          sample_id?: string | null;
+          job_id?: string | null;
+          image_url?: string;
+          ai_service?: string;
+          prompt_used?: string;
+          scene_description?: string | null;
+          generation_time?: number | null;
+          credit_cost?: number;
+          parameters?: Json;
+          image_type?: "sample" | "bulk";
+          is_favorite?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       jobs: {
         Row: {
           id: string;

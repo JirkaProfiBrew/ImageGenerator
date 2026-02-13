@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import type { AIService } from "@/lib/types";
 import { AI_SERVICE_LABELS } from "@/lib/types";
+import { ImageModal } from "@/components/ImageModal";
 
 // --- Types ---
 
@@ -112,6 +113,7 @@ function getStatusBadge(status: string) {
 
 export default function ProjectDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const projectId = params.id as string;
 
   const [project, setProject] = useState<ProjectDetail | null>(null);
@@ -136,6 +138,26 @@ export default function ProjectDetailPage() {
   // Lock state
   const [lockingId, setLockingId] = useState<string | null>(null);
 
+  // Image preview modal state
+  const [previewImage, setPreviewImage] = useState<{
+    url: string;
+    alt: string;
+  } | null>(null);
+
+  // Saved images state
+  const [savedImages, setSavedImages] = useState<
+    {
+      id: string;
+      sample_id: string | null;
+      ai_service: string;
+      image_url: string;
+      scene_description: string | null;
+      created_at: string;
+    }[]
+  >([]);
+  const [savingImageKey, setSavingImageKey] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const selectedCount =
     Number(selectedServices.dalle3) +
     Number(selectedServices.flux) +
@@ -152,7 +174,15 @@ export default function ProjectDetailPage() {
         throw new Error(json.error || "Failed to load project");
       }
 
-      setProject({ ...json.project, samples: json.samples ?? [] });
+      const samples = json.samples ?? [];
+      setProject({ ...json.project, samples });
+
+      // Pre-fill scene description from most recent sample (if textarea is empty)
+      if (samples.length > 0) {
+        setSceneDescription((prev) =>
+          prev === "" ? samples[0].scene_description || "" : prev
+        );
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to load project";
@@ -162,9 +192,22 @@ export default function ProjectDetailPage() {
     }
   }, [projectId]);
 
+  const fetchSavedImages = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}/images`);
+      const json = await response.json();
+      if (json.success) {
+        setSavedImages(json.images ?? []);
+      }
+    } catch {
+      // Silently fail - saved images are supplementary
+    }
+  }, [projectId]);
+
   useEffect(() => {
     fetchProject();
-  }, [fetchProject]);
+    fetchSavedImages();
+  }, [fetchProject, fetchSavedImages]);
 
   // --- Edit handlers ---
 
@@ -182,6 +225,15 @@ export default function ProjectDetailPage() {
       creativity_level: project.creativity_level || "medium",
     });
   };
+
+  // Auto-enable editing for newly created projects
+  useEffect(() => {
+    if (searchParams.get("new") === "true" && project?.status === "draft") {
+      startEditing();
+      window.history.replaceState({}, "", `/projects/${projectId}`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, searchParams, projectId]);
 
   const cancelEditing = () => {
     setEditing(false);
@@ -299,7 +351,6 @@ export default function ProjectDetailPage() {
         };
       });
 
-      setSceneDescription("");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to generate sample";
@@ -354,6 +405,93 @@ export default function ProjectDetailPage() {
       setGenerateError(message);
     } finally {
       setLockingId(null);
+    }
+  };
+
+  // --- Unlock handler ---
+
+  const handleUnlockProject = async () => {
+    const confirmed = confirm(
+      `Unlock this project?\n\n` +
+        `This will:\n` +
+        `- Change status back to "draft"\n` +
+        `- Allow you to edit settings and generate new samples\n` +
+        `- Keep your previous AI service preference as reference\n\n` +
+        `You can re-lock the project later with a new sample.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/unlock`, {
+        method: "PATCH",
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        throw new Error(json.error || "Failed to unlock project");
+      }
+
+      setGenerateError(null);
+      await fetchProject();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to unlock project";
+      setGenerateError(message);
+    }
+  };
+
+  // --- Save image handler ---
+
+  const isImageSaved = (sampleId: string, aiService: string) =>
+    savedImages.some(
+      (img) => img.sample_id === sampleId && img.ai_service === aiService
+    );
+
+  const handleSaveImage = async (
+    sampleId: string,
+    img: GeneratedImageItem,
+    sceneDescription: string
+  ) => {
+    const key = `${sampleId}-${img.aiService}`;
+    setSavingImageKey(key);
+    setSaveError(null);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/images`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sample_id: sampleId,
+          image_url: img.imageUrl,
+          ai_service: img.aiService,
+          prompt_used: project?.base_prompt || "",
+          scene_description: sceneDescription,
+          generation_time: img.generationTime,
+          credit_cost: img.creditCost,
+          parameters: {
+            quality_level: project?.quality_level,
+            creativity_level: project?.creativity_level,
+            style: project?.style,
+            background: project?.background,
+          },
+        }),
+      });
+
+      const json = await response.json();
+
+      if (!json.success) {
+        throw new Error(json.error || "Failed to save image");
+      }
+
+      await fetchSavedImages();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save image";
+      setSaveError(message);
+    } finally {
+      setSavingImageKey(null);
     }
   };
 
@@ -437,7 +575,13 @@ export default function ProjectDetailPage() {
                       {AI_SERVICE_LABELS[project.ai_service]}
                     </div>
                     <div className="text-blue-700 text-xs">
-                      Locked for bulk
+                      Locked for bulk &middot;{" "}
+                      <button
+                        onClick={handleUnlockProject}
+                        className="underline hover:text-blue-900"
+                      >
+                        Unlock
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -756,6 +900,22 @@ export default function ProjectDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Previously locked info banner */}
+      {project.status === "draft" && project.ai_service && project.consistency_seed && (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm text-blue-800">
+            <strong>
+              Previously locked with{" "}
+              {AI_SERVICE_LABELS[project.ai_service]}
+            </strong>
+            <br />
+            You can now generate new samples and re-lock with the same or
+            different AI service. Previous consistency seed:{" "}
+            {project.consistency_seed}
+          </p>
+        </div>
+      )}
+
       {/* ========== GENERATE SAMPLE SECTION ========== */}
       {project.status === "draft" && (
         <Card>
@@ -764,7 +924,9 @@ export default function ProjectDetailPage() {
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
                 1
               </span>
-              Generate Sample
+              {project.samples.length > 0
+                ? "Regenerate Sample"
+                : "Generate Sample"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -847,7 +1009,9 @@ export default function ProjectDetailPage() {
                 ? "Generating..."
                 : saving
                   ? "Saving..."
-                  : "Generate Sample"}
+                  : project.samples.length > 0
+                    ? "Regenerate Sample"
+                    : "Generate Sample"}
             </Button>
 
             {generating && (
@@ -872,6 +1036,12 @@ export default function ProjectDetailPage() {
           <Separator />
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold">Samples</h2>
+
+            {saveError && (
+              <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                Save error: {saveError}
+              </div>
+            )}
 
             {project.samples.map((sample) => {
               const images = (
@@ -916,7 +1086,13 @@ export default function ProjectDetailPage() {
                           <img
                             src={img.imageUrl}
                             alt={`${getServiceName(img.aiService)} result`}
-                            className="w-full h-64 object-cover"
+                            className="w-full h-64 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() =>
+                              setPreviewImage({
+                                url: img.imageUrl!,
+                                alt: `${getServiceName(img.aiService)} - ${sample.scene_description}`,
+                              })
+                            }
                           />
                         ) : (
                           <div className="w-full h-64 bg-gray-100 flex items-center justify-center p-4">
@@ -951,6 +1127,38 @@ export default function ProjectDetailPage() {
                               <Badge className="mt-2 bg-success text-white border-transparent hover:bg-success/80">
                                 Selected
                               </Badge>
+                            )}
+
+                          {/* Save to project button */}
+                          {img.imageUrl &&
+                            !isImageSaved(sample.id, img.aiService) && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-2 w-full"
+                                disabled={
+                                  savingImageKey ===
+                                  `${sample.id}-${img.aiService}`
+                                }
+                                onClick={() =>
+                                  handleSaveImage(
+                                    sample.id,
+                                    img,
+                                    sample.scene_description
+                                  )
+                                }
+                              >
+                                {savingImageKey ===
+                                `${sample.id}-${img.aiService}`
+                                  ? "Saving..."
+                                  : "Save to Project"}
+                              </Button>
+                            )}
+                          {img.imageUrl &&
+                            isImageSaved(sample.id, img.aiService) && (
+                              <p className="mt-2 text-center text-xs text-success font-medium">
+                                Saved
+                              </p>
                             )}
                         </div>
                       </div>
@@ -1074,6 +1282,52 @@ export default function ProjectDetailPage() {
         </>
       )}
 
+      {/* Saved images gallery */}
+      {savedImages.length > 0 && (
+        <>
+          <Separator />
+          <div className="space-y-4">
+            <h2 className="text-2xl font-semibold">
+              Saved Images ({savedImages.length})
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {savedImages.map((img) => (
+                <div
+                  key={img.id}
+                  className="border rounded-lg overflow-hidden bg-white"
+                >
+                  <img
+                    src={img.image_url}
+                    alt={img.scene_description || "Saved image"}
+                    className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() =>
+                      setPreviewImage({
+                        url: img.image_url,
+                        alt: img.scene_description || "Saved image",
+                      })
+                    }
+                  />
+                  <div className="p-2 bg-muted/50">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {img.ai_service === "openai_dalle3"
+                        ? "DALL-E 3"
+                        : img.ai_service === "replicate_flux"
+                          ? "Flux Pro"
+                          : img.ai_service === "google_nano_banana"
+                            ? "Nano Banana Pro"
+                            : img.ai_service}
+                    </p>
+                    <p className="text-xs text-muted-foreground/60">
+                      {new Date(img.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
       {/* Empty samples state */}
       {project.samples.length === 0 && project.status === "draft" && (
         <Card>
@@ -1102,6 +1356,15 @@ export default function ProjectDetailPage() {
             <Link href="/bulk/setup">Start Bulk Generation</Link>
           </Button>
         </div>
+      )}
+
+      {/* Image preview modal */}
+      {previewImage && (
+        <ImageModal
+          imageUrl={previewImage.url}
+          alt={previewImage.alt}
+          onClose={() => setPreviewImage(null)}
+        />
       )}
     </div>
   );

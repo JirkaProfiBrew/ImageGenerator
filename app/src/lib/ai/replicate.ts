@@ -32,8 +32,6 @@ export async function generateWithFluxPro(
   options?: FluxGenerateOptions
 ): Promise<FluxResult> {
   try {
-    console.log("Generating with Flux Pro:", prompt);
-
     let guidance = options?.guidance ?? 7.5;
     let numSteps = options?.num_inference_steps ?? 25;
     let seed = options?.seed ?? undefined;
@@ -48,8 +46,9 @@ export async function generateWithFluxPro(
       guidance = params.guidance;
       numSteps = params.num_inference_steps;
       seed = params.seed;
-      console.log("Flux Pro params:", { guidance, numSteps, seed });
     }
+
+    console.log("[Flux Pro] Generating...", { guidance, steps: numSteps, seed: seed ?? "none", ratio: options?.aspectRatio || "1:1" });
 
     const input: Record<string, unknown> = {
       prompt,
@@ -82,13 +81,15 @@ export async function generateWithFluxPro(
       return { success: false, error: "No output received from Flux Pro" };
     }
 
+    console.log("[Flux Pro] OK, URL:", imageUrl.substring(0, 60) + "...");
+
     return {
       success: true,
       imageUrl,
     };
   } catch (error) {
-    console.error("Flux Pro generation error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
+    console.error("[Flux Pro] Error:", message);
     return {
       success: false,
       error: message,
