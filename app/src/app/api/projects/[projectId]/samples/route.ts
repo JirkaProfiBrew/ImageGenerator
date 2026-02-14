@@ -112,20 +112,25 @@ export async function POST(
     console.log(`[Samples] Service configs loaded: ${configCount} custom configs`);
 
     // Map aspect ratio for DALL-E size
+    // DALL-E 3 only supports 1:1, 16:9, 9:16. Convert 4:3 → 16:9.
+    const dalleRatio = project.default_ratio === "4:3" ? "16:9" : (project.default_ratio || "1:1");
     const dalleSize: "1024x1024" | "1024x1792" | "1792x1024" =
-      project.default_ratio === "9:16"
+      dalleRatio === "9:16"
         ? "1024x1792"
-        : project.default_ratio === "16:9"
+        : dalleRatio === "16:9"
           ? "1792x1024"
           : "1024x1024";
 
-    // Map aspect ratio for Flux
+    if (project.default_ratio === "4:3") {
+      console.log("[Samples] DALL-E ratio 4:3 → 16:9 (landscape fallback)");
+    }
+
+    // Map aspect ratio for Flux (supports 4:3 natively)
     const fluxRatio = (project.default_ratio || "1:1") as
       | "1:1"
       | "16:9"
       | "9:16"
-      | "4:3"
-      | "3:2";
+      | "4:3";
 
     // Generate with selected AI services in parallel
     interface TimedResult {

@@ -896,23 +896,29 @@ export default function ProjectDetailPage() {
             <div className="space-y-2">
               <p className="text-sm font-medium">Aspect Ratio</p>
               {editing ? (
-                <Select
-                  value={edited.default_ratio ?? project.default_ratio}
-                  onValueChange={(v) =>
-                    setEdited((prev) => ({ ...prev, default_ratio: v }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="1:1">1:1 (Square)</SelectItem>
-                    <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
-                    <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
-                    <SelectItem value="4:3">4:3</SelectItem>
-                    <SelectItem value="3:2">3:2</SelectItem>
-                  </SelectContent>
-                </Select>
+                <>
+                  <Select
+                    value={edited.default_ratio ?? project.default_ratio}
+                    onValueChange={(v) =>
+                      setEdited((prev) => ({ ...prev, default_ratio: v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1:1">1:1 (Square)</SelectItem>
+                      <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
+                      <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
+                      <SelectItem value="4:3">4:3</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {(edited.default_ratio ?? project.default_ratio) === "4:3" && (
+                    <p className="mt-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded-md p-2">
+                      <span className="font-medium">Note:</span> DALL-E 3 only supports 1:1, 16:9, and 9:16. Your 4:3 ratio will be converted to 16:9 for DALL-E generations.
+                    </p>
+                  )}
+                </>
               ) : (
                 <p className="text-sm text-muted-foreground bg-muted/50 p-2 rounded-md border">
                   {project.default_ratio}

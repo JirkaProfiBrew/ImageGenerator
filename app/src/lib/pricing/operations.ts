@@ -86,7 +86,12 @@ export function getServiceId(
   // DALL-E 3
   if (aiService === "openai_dalle3") {
     const isHD = params.quality === "hd";
-    const isWide = params.ratio === "16:9" || params.ratio === "9:16";
+    // DALL-E 3 only supports 1:1, 16:9, 9:16. Convert 4:3 → 16:9.
+    let ratio = params.ratio || "1:1";
+    if (ratio === "4:3") {
+      ratio = "16:9";
+    }
+    const isWide = ratio === "16:9" || ratio === "9:16";
 
     if (isHD && isWide) return "dalle3_hd_wide";
     if (isHD) return "dalle3_hd_square";

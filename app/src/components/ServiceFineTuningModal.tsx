@@ -511,7 +511,7 @@ function DallEParams({
               onChange={() => onChange("style", "natural")}
               className="h-4 w-4"
             />
-            <span className="text-sm">Natural (realistic, balanced)</span>
+            <span className="text-sm">Natural (photorealistic)</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -521,10 +521,23 @@ function DallEParams({
               className="h-4 w-4"
             />
             <span className="text-sm">
-              Vivid (dramatic, saturated colors)
+              Vivid (hyper-real, dramatic colors)
             </span>
           </label>
         </div>
+        <p className="text-xs text-muted-foreground">
+          If using project settings, Realistic style maps to Natural, all others to Vivid.
+        </p>
+      </div>
+
+      {/* DALL-E 3 info */}
+      <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 space-y-1">
+        <p className="font-medium text-blue-900">About DALL-E 3</p>
+        <ul className="space-y-0.5">
+          <li>&#8226; Supported ratios: 1:1, 16:9, 9:16 (4:3 converts to 16:9)</li>
+          <li>&#8226; HD quality increases the credit cost</li>
+          <li>&#8226; Aspect ratio is set in project settings</li>
+        </ul>
       </div>
     </div>
   );

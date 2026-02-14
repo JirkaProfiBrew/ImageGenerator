@@ -15,15 +15,15 @@ export function getDallE3Parameters(
   qualityLevel: QualityLevel,
   creativityLevel: CreativityLevel
 ): DallE3Params {
+  // creativityLevel kept for API compatibility (callers pass all 3 params)
+  void creativityLevel;
+
   const quality: "standard" | "hd" =
     qualityLevel === "ultra" ? "hd" : "standard";
 
-  let style: "natural" | "vivid" = "natural";
-  if (uiStyle === "artistic" || uiStyle === "3d") {
-    style = "vivid";
-  } else if (uiStyle === "realistic" && creativityLevel === "high") {
-    style = "vivid";
-  }
+  // Style mapping: Realistic → natural, all others → vivid
+  const style: "natural" | "vivid" =
+    uiStyle === "realistic" ? "natural" : "vivid";
 
   return { quality, style };
 }
@@ -149,7 +149,10 @@ export function getFinalParameters(
   console.log(`[${aiService}] Using basic parameters (mapped from ${qualityLevel}/${creativityLevel})`);
 
   if (aiService === "openai_dalle3") {
-    return { ...getDallE3Parameters(uiStyle, qualityLevel, creativityLevel) };
+    const dalleParams = getDallE3Parameters(uiStyle, qualityLevel, creativityLevel);
+    console.log(`[DALL-E Params] Project style: ${uiStyle} → API style: ${dalleParams.style}`);
+    console.log("[DALL-E Params] Final params:", dalleParams);
+    return { ...dalleParams };
   } else if (aiService === "replicate_flux") {
     return { ...getFluxProParameters(uiStyle, qualityLevel, creativityLevel, consistencySeed) };
   } else if (aiService === "google_nano_banana") {

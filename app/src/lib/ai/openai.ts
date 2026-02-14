@@ -31,7 +31,7 @@ export async function generateWithDallE3(
 ): Promise<DallEResult> {
   try {
     let quality: "standard" | "hd" = options?.quality || "standard";
-    let style: "natural" | "vivid" = options?.style || "vivid";
+    let style: "natural" | "vivid" = options?.style || "natural";
 
     if (options?.uiStyle && options?.qualityLevel && options?.creativityLevel) {
       const params = getDallE3Parameters(
