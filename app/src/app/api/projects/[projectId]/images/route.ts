@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { persistImageToStorage } from "@/lib/supabase/storage";
 import type { Database } from "@/lib/supabase/database.types";
 
 type GeneratedImageRow = Database["public"]["Tables"]["generated_images"]["Row"];
@@ -75,12 +76,20 @@ export async function POST(
       }
     }
 
+    // Persist image to Supabase Storage (permanent URL)
+    const permanentUrl = await persistImageToStorage(image_url, projectId, ai_service);
+    const finalImageUrl = permanentUrl ?? image_url; // fallback to original if upload fails
+
+    if (!permanentUrl) {
+      console.warn("[Images API] Storage upload failed, using original (temporary) URL");
+    }
+
     const { data: savedImage, error: insertError } = await supabaseAdmin
       .from("generated_images")
       .insert({
         project_id: projectId,
         sample_id: sample_id || null,
-        image_url,
+        image_url: finalImageUrl,
         ai_service_id: ai_service,
         prompt_used: prompt_used || "",
         scene_description: scene_description || null,

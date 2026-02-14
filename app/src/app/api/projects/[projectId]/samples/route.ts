@@ -13,6 +13,12 @@ import {
   buildContextPromptSuffix,
   buildGeminiImageParts,
 } from "@/lib/ai/context-helpers";
+import { getServiceId, getCreditsRequired } from "@/lib/pricing/operations";
+import {
+  calculateActualCredits,
+  calculateVariance,
+} from "@/lib/pricing/credit-calculator";
+import { persistImageToStorage } from "@/lib/supabase/storage";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import type { ProjectContext } from "@/lib/types";
 
@@ -112,8 +118,9 @@ export async function POST(
     console.log(`[Samples] Service configs loaded: ${configCount} custom configs`);
 
     // Map aspect ratio for DALL-E size
-    // DALL-E 3 only supports 1:1, 16:9, 9:16. Convert 4:3 → 16:9.
-    const dalleRatio = project.default_ratio === "4:3" ? "16:9" : (project.default_ratio || "1:1");
+    // DALL-E 3 only supports 1:1, 16:9, 9:16. Convert 5:4/4:3 → 16:9.
+    const ratio = project.default_ratio || "1:1";
+    const dalleRatio = (ratio === "5:4" || ratio === "4:3") ? "16:9" : ratio;
     const dalleSize: "1024x1024" | "1024x1792" | "1792x1024" =
       dalleRatio === "9:16"
         ? "1024x1792"
@@ -121,21 +128,62 @@ export async function POST(
           ? "1792x1024"
           : "1024x1024";
 
-    if (project.default_ratio === "4:3") {
-      console.log("[Samples] DALL-E ratio 4:3 → 16:9 (landscape fallback)");
+    if (ratio === "5:4" || ratio === "4:3") {
+      console.log(`[Samples] DALL-E ratio ${ratio} → 16:9 (landscape fallback)`);
     }
 
-    // Map aspect ratio for Flux (supports 4:3 natively)
+    // Map aspect ratio for Flux (supports 5:4 natively)
     const fluxRatio = (project.default_ratio || "1:1") as
       | "1:1"
       | "16:9"
       | "9:16"
-      | "4:3";
+      | "5:4";
+
+    // --- Pre-calculate estimated credits for each service ---
+    const estimatedCreditsMap: Record<string, number> = {};
+
+    if (services.dalle3) {
+      try {
+        const dalleServiceId = getServiceId("openai_dalle3", {
+          quality: "standard",
+          ratio: dalleRatio,
+        });
+        estimatedCreditsMap["openai_dalle3"] = await getCreditsRequired(dalleServiceId);
+      } catch {
+        estimatedCreditsMap["openai_dalle3"] = 4; // fallback
+      }
+    }
+
+    if (services.flux) {
+      try {
+        const fluxFinalParams = getFinalParameters(
+          serviceConfigMap["replicate_flux"] ?? null,
+          uiStyle, qualityLevel, creativityLevel,
+          "replicate_flux",
+          project.consistency_seed
+        );
+        const fluxSteps = (fluxFinalParams.num_inference_steps as number) || 25;
+        const fluxServiceId = getServiceId("replicate_flux", { steps: fluxSteps });
+        estimatedCreditsMap["replicate_flux"] = await getCreditsRequired(fluxServiceId);
+        console.log(`[Samples] Flux estimated: ${estimatedCreditsMap["replicate_flux"]} credits (${fluxSteps} steps, tier: ${fluxServiceId})`);
+      } catch {
+        estimatedCreditsMap["replicate_flux"] = 2; // fallback
+      }
+    }
+
+    if (services.nanoBanana) {
+      try {
+        const nanoServiceId = getServiceId("google_nano_banana", { imageSize: "1K" });
+        estimatedCreditsMap["google_nano_banana"] = await getCreditsRequired(nanoServiceId);
+      } catch {
+        estimatedCreditsMap["google_nano_banana"] = 1; // fallback
+      }
+    }
 
     // Generate with selected AI services in parallel
     interface TimedResult {
       key: string;
-      result: { success: boolean; imageUrl?: string; error?: string };
+      result: { success: boolean; imageUrl?: string; error?: string; actualCostUsd?: number; predictTime?: number };
       time: number;
     }
 
@@ -155,7 +203,6 @@ export async function POST(
             size: dalleSize,
             quality: (finalParams.quality as "standard" | "hd") || undefined,
             style: (finalParams.style as "natural" | "vivid") || undefined,
-            // Still pass UI params as fallback for basic mapping
             uiStyle,
             qualityLevel,
             creativityLevel,
@@ -188,7 +235,6 @@ export async function POST(
             prompt_upsampling: finalParams.prompt_upsampling as boolean | undefined,
             safety_tolerance: finalParams.safety_tolerance as number | undefined,
             seed: (finalParams.seed as number | undefined) ?? project.consistency_seed,
-            // Still pass UI params as fallback for basic mapping
             uiStyle,
             qualityLevel,
             creativityLevel,
@@ -217,10 +263,8 @@ export async function POST(
             topP: finalParams.topP as number | undefined,
             topK: finalParams.topK as number | undefined,
             enableSearch: finalParams.enable_search as boolean | undefined,
-            // Reference images and text context (Gemini multimodal)
             referenceImageParts: geminiImageParts,
             contextText: documentText || undefined,
-            // Still pass UI params as fallback for basic mapping
             uiStyle,
             qualityLevel,
             creativityLevel,
@@ -241,25 +285,84 @@ export async function POST(
 
     const apiResults = await Promise.all(apiCalls);
 
-    // Build generated images array with individual timings
+    // Build generated images array with estimated credits from pricing DB
     const generatedImages: { [key: string]: Json | undefined }[] = [];
 
+    // Track actual costs for Flux (only service with per-request cost tracking)
+    let actualCostFlux: number | undefined;
+    let actualCreditsFlux: number | undefined;
+
+    // Persist successful images to Supabase Storage in parallel
+    const serviceMap: Record<string, string> = {
+      dalle3: "openai_dalle3",
+      flux: "replicate_flux",
+      nanoBanana: "google_nano_banana",
+    };
+    const persistResults = await Promise.all(
+      apiResults.map(async ({ key, result }) => {
+        if (result.success && result.imageUrl) {
+          const permanentUrl = await persistImageToStorage(
+            result.imageUrl,
+            projectId,
+            serviceMap[key]
+          );
+          return { key, permanentUrl };
+        }
+        return { key, permanentUrl: null };
+      })
+    );
+    const permanentUrls: Record<string, string | null> = {};
+    for (const { key, permanentUrl } of persistResults) {
+      permanentUrls[key] = permanentUrl;
+    }
+
     for (const { key, result, time } of apiResults) {
+      // Use permanent Storage URL if available, otherwise original temporary URL
+      const imageUrl = result.success
+        ? (permanentUrls[key] ?? result.imageUrl ?? null)
+        : null;
+
       if (key === "dalle3") {
         generatedImages.push({
           aiService: "openai_dalle3",
           displayName: "DALL-E 3",
-          imageUrl: result.success ? result.imageUrl : null,
-          creditCost: 15,
+          imageUrl,
+          creditCost: estimatedCreditsMap["openai_dalle3"] ?? 4,
           generationTime: time,
           error: result.success ? undefined : result.error,
         });
       } else if (key === "flux") {
+        const estimatedCredits = estimatedCreditsMap["replicate_flux"] ?? 2;
+
+        // Extract actual cost from Replicate prediction metrics
+        actualCostFlux = result.actualCostUsd;
+        actualCreditsFlux = undefined;
+
+        if (actualCostFlux !== undefined) {
+          try {
+            const fluxFinalParams = getFinalParameters(
+              serviceConfigMap["replicate_flux"] ?? null,
+              uiStyle, qualityLevel, creativityLevel,
+              "replicate_flux",
+              project.consistency_seed
+            );
+            const fluxSteps = (fluxFinalParams.num_inference_steps as number) || 25;
+            const fluxSvcId = getServiceId("replicate_flux", { steps: fluxSteps });
+            actualCreditsFlux = await calculateActualCredits(fluxSvcId, actualCostFlux);
+            const variance = calculateVariance(estimatedCredits, actualCreditsFlux);
+            console.log(`[Samples] Flux actual: ${actualCreditsFlux} credits ($${actualCostFlux}), variance: ${variance}%, predictTime: ${result.predictTime?.toFixed(1) ?? "?"}s`);
+          } catch {
+            // Non-critical: fall back to estimated
+          }
+        }
+
         generatedImages.push({
           aiService: "replicate_flux",
           displayName: "Flux Pro",
-          imageUrl: result.success ? result.imageUrl : null,
-          creditCost: 10,
+          imageUrl,
+          creditCost: actualCreditsFlux ?? estimatedCredits,
+          estimatedCredits,
+          actualCredits: actualCreditsFlux,
           generationTime: time,
           error: result.success ? undefined : result.error,
         });
@@ -267,8 +370,8 @@ export async function POST(
         generatedImages.push({
           aiService: "google_nano_banana",
           displayName: "Nano Banana Pro",
-          imageUrl: result.success ? result.imageUrl : null,
-          creditCost: 6,
+          imageUrl,
+          creditCost: estimatedCreditsMap["google_nano_banana"] ?? 1,
           generationTime: time,
           error: result.success ? undefined : result.error,
         });
@@ -284,13 +387,19 @@ export async function POST(
     );
 
     // Save sample to database
+    // Only include actual cost columns when they have values
+    // (columns may not exist if migration 20260214 hasn't been applied yet)
+    type SampleInsert = Database["public"]["Tables"]["samples"]["Insert"];
+    const insertData: SampleInsert = {
+      project_id: projectId,
+      scene_description,
+      generated_images: generatedImages,
+      ...(actualCostFlux !== undefined && { actual_cost_flux: actualCostFlux }),
+      ...(actualCreditsFlux !== undefined && { actual_credits_flux: actualCreditsFlux }),
+    };
     const { data: sample, error: sampleError } = await supabaseAdmin
       .from("samples")
-      .insert({
-        project_id: projectId,
-        scene_description,
-        generated_images: generatedImages,
-      })
+      .insert(insertData)
       .select()
       .single();
 

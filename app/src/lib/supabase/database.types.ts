@@ -203,6 +203,12 @@ export interface Database {
           generated_images: Json;
           locked_ai_service_id: string | null;
           is_locked: boolean;
+          actual_cost_dalle: number | null;
+          actual_cost_flux: number | null;
+          actual_cost_nano: number | null;
+          actual_credits_dalle: number | null;
+          actual_credits_flux: number | null;
+          actual_credits_nano: number | null;
           created_at: string;
         };
         Insert: {
@@ -212,6 +218,12 @@ export interface Database {
           generated_images?: Json;
           locked_ai_service_id?: string | null;
           is_locked?: boolean;
+          actual_cost_dalle?: number | null;
+          actual_cost_flux?: number | null;
+          actual_cost_nano?: number | null;
+          actual_credits_dalle?: number | null;
+          actual_credits_flux?: number | null;
+          actual_credits_nano?: number | null;
           created_at?: string;
         };
         Update: {
@@ -221,6 +233,12 @@ export interface Database {
           generated_images?: Json;
           locked_ai_service_id?: string | null;
           is_locked?: boolean;
+          actual_cost_dalle?: number | null;
+          actual_cost_flux?: number | null;
+          actual_cost_nano?: number | null;
+          actual_credits_dalle?: number | null;
+          actual_credits_flux?: number | null;
+          actual_credits_nano?: number | null;
           created_at?: string;
         };
         Relationships: [];
@@ -306,6 +324,7 @@ export interface Database {
           service_id: string;
           ai_service_id: string | null;
           cost_usd: number;
+          coefficient: number;
           valid_from: string;
           valid_to: string | null;
           source: "api_auto" | "manual" | "calculated";
@@ -317,6 +336,7 @@ export interface Database {
           service_id: string;
           ai_service_id?: string | null;
           cost_usd: number;
+          coefficient?: number;
           valid_from?: string;
           valid_to?: string | null;
           source?: "api_auto" | "manual" | "calculated";
@@ -328,6 +348,7 @@ export interface Database {
           service_id?: string;
           ai_service_id?: string | null;
           cost_usd?: number;
+          coefficient?: number;
           valid_from?: string;
           valid_to?: string | null;
           source?: "api_auto" | "manual" | "calculated";

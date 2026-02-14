@@ -3,6 +3,7 @@ export interface ServiceCost {
   service_id: string;
   ai_service_id: string | null;
   cost_usd: number;
+  coefficient: number;
   valid_from: string;
   valid_to: string | null;
   source: "api_auto" | "manual" | "calculated";
@@ -28,9 +29,15 @@ export interface CurrentServicePricing {
   user_price_usd: number;
   credits_required: number;
   cost_valid_from: string;
-  coefficient_valid_from: string;
   source: "api_auto" | "manual" | "calculated";
   notes: string | null;
+}
+
+export interface CreditCalculation {
+  estimated_credits: number;
+  actual_credits?: number;
+  actual_cost_usd?: number;
+  variance_percent?: number;
 }
 
 export type ServiceIdType =

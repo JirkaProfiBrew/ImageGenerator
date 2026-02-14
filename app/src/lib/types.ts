@@ -169,7 +169,7 @@ export type EnhancementOperation =
   | "enhancement-basic"
   | "enhancement-premium";
 
-export type AspectRatio = "1:1" | "4:3" | "16:9" | "9:16" | "original";
+export type AspectRatio = "1:1" | "5:4" | "16:9" | "9:16" | "original";
 
 export type ImageStyle =
   | "realistic"

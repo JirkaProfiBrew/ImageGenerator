@@ -37,6 +37,8 @@ interface GeneratedImageItem {
   displayName: string;
   imageUrl: string | null;
   creditCost: number;
+  estimatedCredits?: number;
+  actualCredits?: number;
   generationTime: number;
   error?: string;
 }
@@ -163,6 +165,12 @@ export default function ProjectDetailPage() {
   const [savingImageKey, setSavingImageKey] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Track expired/broken image URLs
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+  const handleImageError = useCallback((url: string) => {
+    setBrokenImages((prev) => new Set(prev).add(url));
+  }, []);
+
   // Context state
   const [contextConfig, setContextConfig] = useState<ProjectContext>({});
   const [isContextExpanded, setIsContextExpanded] = useState(false);
@@ -228,6 +236,7 @@ export default function ProjectDetailPage() {
       }
 
       const samples = json.samples ?? [];
+      console.log(`[Project] Loaded: ${json.project.name}, samples: ${samples.length}`);
       const proj = { ...json.project, samples };
       setProject(proj);
 
@@ -275,10 +284,12 @@ export default function ProjectDetailPage() {
       const response = await fetch(`/api/projects/${projectId}/images`);
       const json = await response.json();
       if (json.success) {
-        setSavedImages(json.images ?? []);
+        const imgs = json.images ?? [];
+        console.log(`[Project] Saved images: ${imgs.length}`);
+        setSavedImages(imgs);
       }
-    } catch {
-      // Silently fail - saved images are supplementary
+    } catch (err) {
+      console.error("[Project] Failed to fetch saved images:", err);
     }
   }, [projectId]);
 
@@ -910,12 +921,12 @@ export default function ProjectDetailPage() {
                       <SelectItem value="1:1">1:1 (Square)</SelectItem>
                       <SelectItem value="16:9">16:9 (Landscape)</SelectItem>
                       <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
-                      <SelectItem value="4:3">4:3</SelectItem>
+                      <SelectItem value="5:4">5:4</SelectItem>
                     </SelectContent>
                   </Select>
-                  {(edited.default_ratio ?? project.default_ratio) === "4:3" && (
+                  {(edited.default_ratio ?? project.default_ratio) === "5:4" && (
                     <p className="mt-1 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded-md p-2">
-                      <span className="font-medium">Note:</span> DALL-E 3 only supports 1:1, 16:9, and 9:16. Your 4:3 ratio will be converted to 16:9 for DALL-E generations.
+                      <span className="font-medium">Note:</span> DALL-E 3 only supports 1:1, 16:9, and 9:16. Your 5:4 ratio will be converted to 16:9 (landscape) for DALL-E generations.
                     </p>
                   )}
                 </>
@@ -1380,7 +1391,7 @@ export default function ProjectDetailPage() {
                         key={idx}
                         className="border rounded-lg overflow-hidden bg-white"
                       >
-                        {img.imageUrl ? (
+                        {img.imageUrl && !brokenImages.has(img.imageUrl) ? (
                           <img
                             src={img.imageUrl}
                             alt={`${getServiceName(img.aiService)} result`}
@@ -1391,11 +1402,16 @@ export default function ProjectDetailPage() {
                                 alt: `${getServiceName(img.aiService)} - ${sample.scene_description}`,
                               })
                             }
+                            onError={() => handleImageError(img.imageUrl!)}
                           />
                         ) : (
                           <div className="w-full h-64 bg-gray-100 flex items-center justify-center p-4">
-                            <p className="text-destructive text-sm text-center">
-                              Error: {img.error || "Failed to generate"}
+                            <p className="text-muted-foreground text-sm text-center">
+                              {img.error
+                                ? `Error: ${img.error}`
+                                : brokenImages.has(img.imageUrl ?? "")
+                                  ? "Image URL expired. Regenerate the sample to get fresh images."
+                                  : "Failed to generate"}
                             </p>
                           </div>
                         )}
@@ -1406,11 +1422,20 @@ export default function ProjectDetailPage() {
                           </h3>
                           <div className="text-xs text-muted-foreground space-y-1">
                             <p>
-                              Cost:{" "}
+                              Estimated:{" "}
                               <span className="font-medium">
-                                {img.creditCost} credits
+                                {img.estimatedCredits ?? img.creditCost} credits
                               </span>
                             </p>
+                            {img.actualCredits !== undefined && img.actualCredits !== null && (
+                              <p className={`font-medium ${
+                                img.actualCredits <= (img.estimatedCredits ?? img.creditCost)
+                                  ? "text-green-600"
+                                  : "text-orange-600"
+                              }`}>
+                                Actual: {img.actualCredits} credits
+                              </p>
+                            )}
                             <p>
                               Time:{" "}
                               <span className="font-medium">
@@ -1594,17 +1619,26 @@ export default function ProjectDetailPage() {
                   key={img.id}
                   className="border rounded-lg overflow-hidden bg-white"
                 >
-                  <img
-                    src={img.image_url}
-                    alt={img.scene_description || "Saved image"}
-                    className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() =>
-                      setPreviewImage({
-                        url: img.image_url,
-                        alt: img.scene_description || "Saved image",
-                      })
-                    }
-                  />
+                  {!brokenImages.has(img.image_url) ? (
+                    <img
+                      src={img.image_url}
+                      alt={img.scene_description || "Saved image"}
+                      className="w-full h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                      onClick={() =>
+                        setPreviewImage({
+                          url: img.image_url,
+                          alt: img.scene_description || "Saved image",
+                        })
+                      }
+                      onError={() => handleImageError(img.image_url)}
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center p-4">
+                      <p className="text-muted-foreground text-xs text-center">
+                        Image URL expired
+                      </p>
+                    </div>
+                  )}
                   <div className="p-2 bg-muted/50">
                     <p className="text-xs text-muted-foreground truncate">
                       {img.ai_service_id === "openai_dalle3"

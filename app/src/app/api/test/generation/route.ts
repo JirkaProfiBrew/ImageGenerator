@@ -32,22 +32,20 @@ export async function POST(request: Request) {
       dalleSize = "1024x1792";
     } else if (ratio === "16:9" || ratio === "landscape") {
       dalleSize = "1792x1024";
-    } else if (ratio === "4:3") {
-      dalleSize = "1792x1024"; // Closest DALL-E match for 4:3
+    } else if (ratio === "5:4" || ratio === "4:3") {
+      dalleSize = "1792x1024"; // DALL-E: 5:4/4:3 → 16:9 (landscape)
     }
     console.log("DALL-E: Input ratio:", ratio, "-> Output size:", dalleSize);
 
     // Convert ratio to Flux aspect ratio format
-    // Flux supports: 1:1, 16:9, 9:16, 4:3, 3:2
-    let fluxAspectRatio: "1:1" | "16:9" | "9:16" | "4:3" | "3:2" = "1:1";
+    // Flux supports: 1:1, 16:9, 9:16, 5:4
+    let fluxAspectRatio: "1:1" | "16:9" | "9:16" | "5:4" = "1:1";
     if (ratio === "16:9" || ratio === "landscape") {
       fluxAspectRatio = "16:9";
     } else if (ratio === "9:16" || ratio === "portrait") {
       fluxAspectRatio = "9:16";
-    } else if (ratio === "4:3") {
-      fluxAspectRatio = "4:3";
-    } else if (ratio === "3:2") {
-      fluxAspectRatio = "3:2";
+    } else if (ratio === "5:4" || ratio === "4:3") {
+      fluxAspectRatio = "5:4";
     }
     console.log("Flux Pro: Input ratio:", ratio, "-> Output aspect:", fluxAspectRatio);
 
@@ -94,8 +92,7 @@ export async function POST(request: Request) {
       const ratioLabels: Record<string, string> = {
         "9:16": "in portrait orientation, taller than wide",
         "16:9": "in landscape orientation, wider than tall",
-        "4:3": "in 4:3 landscape format",
-        "3:2": "in 3:2 landscape format",
+        "5:4": "in 5:4 landscape format",
       };
       if (ratioLabels[ratio]) {
         googlePrompt += `, ${ratioLabels[ratio]}`;

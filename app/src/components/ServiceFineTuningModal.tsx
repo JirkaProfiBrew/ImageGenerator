@@ -310,11 +310,17 @@ function FluxParams({
           }
           className="w-full accent-primary"
         />
-        <p className="text-xs text-muted-foreground">
-          Lower = faster, Higher = better quality
-          {(params.num_inference_steps ?? 25) >= 50 && " (High tier pricing)"}
-          {(params.num_inference_steps ?? 25) >= 40 && (params.num_inference_steps ?? 25) < 50 && " (Ultra tier pricing)"}
-        </p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p>Lower = faster, Higher = better quality</p>
+          <p className="font-medium text-blue-600">
+            Current tier:{" "}
+            {(params.num_inference_steps ?? 25) <= 30
+              ? "Standard (2 cr)"
+              : (params.num_inference_steps ?? 25) <= 40
+                ? "High (3 cr)"
+                : "Ultra (4 cr)"}
+          </p>
+        </div>
       </div>
 
       {/* Interval */}
@@ -534,7 +540,7 @@ function DallEParams({
       <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 space-y-1">
         <p className="font-medium text-blue-900">About DALL-E 3</p>
         <ul className="space-y-0.5">
-          <li>&#8226; Supported ratios: 1:1, 16:9, 9:16 (4:3 converts to 16:9)</li>
+          <li>&#8226; Supported ratios: 1:1, 16:9, 9:16 (5:4 converts to 16:9)</li>
           <li>&#8226; HD quality increases the credit cost</li>
           <li>&#8226; Aspect ratio is set in project settings</li>
         </ul>

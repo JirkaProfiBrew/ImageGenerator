@@ -34,7 +34,7 @@ export const enhancementParamsSchema = z.object({
     "enhancement-premium",
   ]),
   background: z.string().min(1, "Background description is required"),
-  ratio: z.enum(["1:1", "4:3", "16:9", "9:16", "original"]),
+  ratio: z.enum(["1:1", "5:4", "16:9", "9:16", "original"]),
 });
 
 // --- Generation Mode Parameters ---
@@ -45,7 +45,7 @@ export const generationParamsSchema = z.object({
     .max(2000, "Prompt must be under 2000 characters"),
   style: z.enum(["realistic", "artistic", "minimalist", "commercial"]),
   backgroundType: z.enum(["white", "gradient", "custom", "transparent"]),
-  ratio: z.enum(["1:1", "4:3", "16:9", "9:16", "original"]),
+  ratio: z.enum(["1:1", "5:4", "16:9", "9:16", "original"]),
 });
 
 // --- Bulk Upload ---

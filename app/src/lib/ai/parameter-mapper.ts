@@ -60,7 +60,7 @@ export function getFluxProParameters(
 
   const stepsMap: Record<QualityLevel, number> = {
     standard: 25,
-    high: 35,
+    high: 38,
     ultra: 50,
   };
 

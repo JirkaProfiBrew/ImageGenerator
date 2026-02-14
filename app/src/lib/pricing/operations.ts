@@ -86,9 +86,9 @@ export function getServiceId(
   // DALL-E 3
   if (aiService === "openai_dalle3") {
     const isHD = params.quality === "hd";
-    // DALL-E 3 only supports 1:1, 16:9, 9:16. Convert 4:3 → 16:9.
+    // DALL-E 3 only supports 1:1, 16:9, 9:16. Convert 5:4 → 16:9 (landscape).
     let ratio = params.ratio || "1:1";
-    if (ratio === "4:3") {
+    if (ratio === "5:4" || ratio === "4:3") {
       ratio = "16:9";
     }
     const isWide = ratio === "16:9" || ratio === "9:16";
@@ -99,13 +99,13 @@ export function getServiceId(
     return "dalle3_standard_square";
   }
 
-  // Flux Pro
+  // Flux Pro (tier boundaries: 0-30 standard, 31-40 high, 41-50 ultra)
   if (aiService === "replicate_flux") {
     const steps = params.steps || 25;
 
-    if (steps >= 50) return "flux_high";
-    if (steps >= 40) return "flux_ultra";
-    return "flux_standard";
+    if (steps <= 30) return "flux_standard";
+    if (steps <= 40) return "flux_high";
+    return "flux_ultra";
   }
 
   // Nano Banana

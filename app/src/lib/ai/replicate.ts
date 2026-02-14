@@ -9,8 +9,11 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
+// Replicate Flux 1.1 Pro: flat rate $0.04/image
+const FLUX_PRO_COST_USD = 0.04;
+
 export interface FluxGenerateOptions {
-  aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:2";
+  aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "5:4";
   outputFormat?: "png" | "jpg" | "webp";
   outputQuality?: number;
   guidance?: number;
@@ -28,6 +31,8 @@ export interface FluxResult {
   success: boolean;
   imageUrl?: string;
   error?: string;
+  predictTime?: number;
+  actualCostUsd?: number;
 }
 
 export async function generateWithFluxPro(
@@ -75,11 +80,23 @@ export async function generateWithFluxPro(
       input.seed = seed;
     }
 
-    const output = await replicate.run("black-forest-labs/flux-1.1-pro", {
+    // Use predictions.create + wait to get full prediction with metrics
+    const prediction = await replicate.predictions.create({
+      model: "black-forest-labs/flux-1.1-pro",
       input,
     });
 
-    // Flux Pro returns a single URL string or a FileOutput object with url()
+    const completed = await replicate.wait(prediction);
+
+    if (completed.status === "failed") {
+      const errMsg = completed.error
+        ? String(completed.error)
+        : "Prediction failed";
+      return { success: false, error: errMsg };
+    }
+
+    // Extract image URL from output
+    const output = completed.output;
     let imageUrl: string | undefined;
     if (typeof output === "string") {
       imageUrl = output;
@@ -91,11 +108,19 @@ export async function generateWithFluxPro(
       return { success: false, error: "No output received from Flux Pro" };
     }
 
-    console.log("[Flux Pro] OK, URL:", imageUrl.substring(0, 60) + "...");
+    // Extract metrics
+    const predictTime = completed.metrics?.predict_time;
+    const actualCostUsd = FLUX_PRO_COST_USD;
+
+    console.log(
+      `[Flux Pro] OK in ${predictTime?.toFixed(1) ?? "?"}s, cost: $${actualCostUsd}, URL: ${imageUrl.substring(0, 60)}...`
+    );
 
     return {
       success: true,
       imageUrl,
+      predictTime,
+      actualCostUsd,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

@@ -86,7 +86,7 @@ export function ParameterPanel({ mode, values, onChange }: ParameterPanelProps) 
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="1:1">1:1 (Square)</SelectItem>
-              <SelectItem value="4:3">4:3 (Landscape)</SelectItem>
+              <SelectItem value="5:4">5:4 (Landscape)</SelectItem>
               <SelectItem value="16:9">16:9 (Wide)</SelectItem>
               <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
               <SelectItem value="original">Original</SelectItem>
@@ -161,7 +161,7 @@ export function ParameterPanel({ mode, values, onChange }: ParameterPanelProps) 
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="1:1">1:1 (Square)</SelectItem>
-            <SelectItem value="4:3">4:3 (Landscape)</SelectItem>
+            <SelectItem value="5:4">5:4 (Landscape)</SelectItem>
             <SelectItem value="16:9">16:9 (Wide)</SelectItem>
             <SelectItem value="9:16">9:16 (Portrait)</SelectItem>
             <SelectItem value="original">Original</SelectItem>

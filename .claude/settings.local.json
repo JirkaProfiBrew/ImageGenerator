@@ -20,7 +20,9 @@
       "Bash(netstat:*)",
       "Bash(kill:*)",
       "Bash(cmd.exe //c \"taskkill /F /PID 11360\")",
-      "Bash(ls -la \"c:\\\\Users\\\\jiri.panec\\\\Documents\\\\ImageGenerator\\\\app\\\\src\\\\lib\\\\ai\"\" 2>&1 || echo \"Directory check failed \")"
+      "Bash(ls -la \"c:\\\\Users\\\\jiri.panec\\\\Documents\\\\ImageGenerator\\\\app\\\\src\\\\lib\\\\ai\"\" 2>&1 || echo \"Directory check failed \")",
+      "Bash(pushd:*)",
+      "Bash(popd:*)"
     ]
   }
 }

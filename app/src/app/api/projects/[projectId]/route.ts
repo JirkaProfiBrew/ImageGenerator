@@ -28,11 +28,15 @@ export async function GET(
     }
 
     // Fetch samples for this project
-    const { data: samples } = await supabaseAdmin
+    const { data: samples, error: samplesError } = await supabaseAdmin
       .from("samples")
       .select("*")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false });
+
+    if (samplesError) {
+      console.error("[Project GET] Samples query error:", samplesError.message);
+    }
 
     return NextResponse.json({
       success: true,
