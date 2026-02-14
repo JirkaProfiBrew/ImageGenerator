@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,6 +17,7 @@ import type {
   DallECustomParams,
 } from "@/lib/types";
 import { AI_SERVICE_LABELS } from "@/lib/types";
+import { useServiceCredits } from "@/hooks/useServiceCredits";
 
 interface ServiceFineTuningModalProps {
   projectId: string;
@@ -25,6 +26,7 @@ interface ServiceFineTuningModalProps {
   onSave: (service: AIService, useBasic: boolean, params: Record<string, unknown> | null) => void;
   initialUseBasic?: boolean;
   initialParams?: Record<string, unknown> | null;
+  defaultRatio?: string;
 }
 
 export function ServiceFineTuningModal({
@@ -34,6 +36,7 @@ export function ServiceFineTuningModal({
   onSave,
   initialUseBasic = true,
   initialParams = null,
+  defaultRatio = "1:1",
 }: ServiceFineTuningModalProps) {
   const [useBasicParams, setUseBasicParams] = useState(initialUseBasic);
   const [customParams, setCustomParams] = useState<Record<string, unknown>>(
@@ -41,6 +44,25 @@ export function ServiceFineTuningModal({
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Dynamic credit pricing based on current params
+  const creditInput = useMemo(() => {
+    const params: Record<string, unknown> = {};
+
+    if (service === "openai_dalle3") {
+      params.quality = useBasicParams ? "standard" : (customParams.quality || "standard");
+      params.ratio = defaultRatio;
+    } else if (service === "replicate_flux") {
+      params.steps = useBasicParams ? 25 : (customParams.num_inference_steps || 25);
+    } else if (service === "google_nano_banana") {
+      params.imageSize = "1K";
+    }
+
+    return [{ ai_service: service, params, enabled: true }];
+  }, [service, useBasicParams, customParams, defaultRatio]);
+
+  const { credits: currentCredits, loading: creditsLoading } = useServiceCredits(creditInput);
+  const creditCost = currentCredits[service];
 
   // ESC key + scroll lock
   useEffect(() => {
@@ -108,16 +130,24 @@ export function ServiceFineTuningModal({
         className="w-full max-w-lg max-h-[85vh] overflow-y-auto mx-4"
         onClick={(e) => e.stopPropagation()}
       >
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
-          <CardTitle className="text-lg">
-            {serviceName} Settings
-          </CardTitle>
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground text-xl leading-none"
-          >
-            &times;
-          </button>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">
+              {serviceName} Settings
+            </CardTitle>
+            <button
+              onClick={onClose}
+              className="text-muted-foreground hover:text-foreground text-xl leading-none"
+            >
+              &times;
+            </button>
+          </div>
+          <div className="rounded-md border bg-muted/50 px-3 py-2 text-sm flex items-center justify-between mt-2">
+            <span className="text-muted-foreground">Credit cost:</span>
+            <span className="font-semibold">
+              {creditsLoading ? "..." : creditCost !== undefined ? `${creditCost} credits` : "?"}
+            </span>
+          </div>
         </CardHeader>
 
         <CardContent className="space-y-5">
@@ -282,6 +312,8 @@ function FluxParams({
         />
         <p className="text-xs text-muted-foreground">
           Lower = faster, Higher = better quality
+          {(params.num_inference_steps ?? 25) >= 50 && " (High tier pricing)"}
+          {(params.num_inference_steps ?? 25) >= 40 && (params.num_inference_steps ?? 25) < 50 && " (Ultra tier pricing)"}
         </p>
       </div>
 
@@ -463,7 +495,7 @@ function DallEParams({
               onChange={() => onChange("quality", "hd")}
               className="h-4 w-4"
             />
-            <span className="text-sm">HD (better quality, 2x cost)</span>
+            <span className="text-sm">HD (better quality, higher credits)</span>
           </label>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -28,6 +28,7 @@ import { ImageModal } from "@/components/ImageModal";
 import { ProjectContextUpload } from "@/components/ProjectContextUpload";
 import { ServiceFineTuningModal } from "@/components/ServiceFineTuningModal";
 import { ContextGeneratorModal } from "@/components/ContextGeneratorModal";
+import { useServiceCredits } from "@/hooks/useServiceCredits";
 
 // --- Types ---
 
@@ -177,6 +178,43 @@ export default function ProjectDetailPage() {
     Number(selectedServices.dalle3) +
     Number(selectedServices.flux) +
     Number(selectedServices.nanoBanana);
+
+  // Dynamic credit pricing
+  const serviceInputs = useMemo(() => {
+    const dalleConfig = serviceConfigs["openai_dalle3"];
+    const fluxConfig = serviceConfigs["replicate_flux"];
+
+    return [
+      {
+        ai_service: "openai_dalle3",
+        params: {
+          quality: (dalleConfig?.custom_params?.quality as "standard" | "hd") || "standard",
+          ratio: project?.default_ratio || "1:1",
+        },
+        enabled: selectedServices.dalle3,
+      },
+      {
+        ai_service: "replicate_flux",
+        params: {
+          steps: (fluxConfig?.custom_params?.num_inference_steps as number) || 25,
+        },
+        enabled: selectedServices.flux,
+      },
+      {
+        ai_service: "google_nano_banana",
+        params: {
+          imageSize: "1K" as const,
+        },
+        enabled: selectedServices.nanoBanana,
+      },
+    ];
+  }, [selectedServices, serviceConfigs, project?.default_ratio]);
+
+  const {
+    credits: serviceCredits,
+    totalCredits,
+    loading: creditsLoading,
+  } = useServiceCredits(serviceInputs);
 
   // --- Data fetching ---
 
@@ -1197,7 +1235,9 @@ export default function ProjectDetailPage() {
                       }))
                     }
                   />
-                  <span className="text-sm">DALL-E 3 (15 credits)</span>
+                  <span className="text-sm">
+                    DALL-E 3 ({creditsLoading ? "..." : `${serviceCredits["openai_dalle3"] ?? "?"} credits`})
+                  </span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1210,7 +1250,9 @@ export default function ProjectDetailPage() {
                       }))
                     }
                   />
-                  <span className="text-sm">Flux Pro (10 credits)</span>
+                  <span className="text-sm">
+                    Flux Pro ({creditsLoading ? "..." : `${serviceCredits["replicate_flux"] ?? "?"} credits`})
+                  </span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer">
@@ -1223,7 +1265,9 @@ export default function ProjectDetailPage() {
                       }))
                     }
                   />
-                  <span className="text-sm">Nano Banana Pro (6 credits)</span>
+                  <span className="text-sm">
+                    Nano Banana Pro ({creditsLoading ? "..." : `${serviceCredits["google_nano_banana"] ?? "?"} credits`})
+                  </span>
                 </label>
               </div>
 
@@ -1231,6 +1275,15 @@ export default function ProjectDetailPage() {
                 <p className="text-sm text-destructive">
                   Select at least one AI service
                 </p>
+              )}
+
+              {selectedCount > 0 && (
+                <div className="rounded-md border bg-muted/50 p-3 text-sm flex items-center justify-between">
+                  <span className="text-muted-foreground">Total cost per sample:</span>
+                  <span className="font-semibold">
+                    {creditsLoading ? "Calculating..." : `${totalCredits} credits`}
+                  </span>
+                </div>
               )}
             </div>
 
@@ -1622,6 +1675,7 @@ export default function ProjectDetailPage() {
           }}
           initialUseBasic={serviceConfigs[fineTuningService]?.use_basic_params ?? true}
           initialParams={serviceConfigs[fineTuningService]?.custom_params ?? null}
+          defaultRatio={project?.default_ratio || "1:1"}
         />
       )}
 

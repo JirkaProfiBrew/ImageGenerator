@@ -300,6 +300,72 @@ export interface Database {
         };
         Relationships: [];
       };
+      service_costs: {
+        Row: {
+          id: string;
+          service_id: string;
+          ai_service_id: string | null;
+          cost_usd: number;
+          valid_from: string;
+          valid_to: string | null;
+          source: "api_auto" | "manual" | "calculated";
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          service_id: string;
+          ai_service_id?: string | null;
+          cost_usd: number;
+          valid_from?: string;
+          valid_to?: string | null;
+          source?: "api_auto" | "manual" | "calculated";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          service_id?: string;
+          ai_service_id?: string | null;
+          cost_usd?: number;
+          valid_from?: string;
+          valid_to?: string | null;
+          source?: "api_auto" | "manual" | "calculated";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      pricing_coefficients: {
+        Row: {
+          id: string;
+          coefficient: number;
+          valid_from: string;
+          valid_to: string | null;
+          name: string;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          coefficient: number;
+          valid_from?: string;
+          valid_to?: string | null;
+          name: string;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          coefficient?: number;
+          valid_from?: string;
+          valid_to?: string | null;
+          name?: string;
+          description?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       credit_packages: {
         Row: {
           id: string;

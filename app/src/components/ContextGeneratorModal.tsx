@@ -108,7 +108,7 @@ export function ContextGeneratorModal({
         <div className="p-6 border-b">
           <h2 className="text-xl font-bold">Generate Context with AI</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Create detailed text context using GPT-4o-mini (1 credit)
+            Create detailed text context using GPT-4o-mini (1 credit, fixed)
           </p>
         </div>
 
@@ -212,7 +212,7 @@ export function ContextGeneratorModal({
               {/* Cost info */}
               <div className="rounded-md border bg-muted/50 p-3 text-xs flex items-center justify-between">
                 <span className="text-muted-foreground">Cost:</span>
-                <span className="font-semibold">1 credit</span>
+                <span className="font-semibold">1 credit <span className="font-normal text-muted-foreground">(fixed)</span></span>
               </div>
 
               <div className="flex justify-between pt-4">

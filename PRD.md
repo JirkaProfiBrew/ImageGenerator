@@ -1,10 +1,10 @@
 ﻿# PRODUCT REQUIREMENTS DOCUMENT (PRD)
 ## Bulk AI Image Platform - Dual-Mode Multi-Provider Testing
 
-**Verze:** 2.4
+**Verze:** 2.5
 **Datum:** Únor 13, 2026
 **Status:** Draft - Living Document
-**Last Updated:** Phase 7.7.5 - Apply Context & Fine-tuning in Sample Generation
+**Last Updated:** Phase 7.10B - Dynamic Credit Display in UI
 **Product Owner:** [Vaše jméno]
 
 ---
@@ -1271,6 +1271,31 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 - [x] Prompt builder utility (lib/ai/prompt-builder.ts)
 - [x] Console logging for debugging parameter mapping
 
+**H. Context Upload & AI Context Generation (Phase 7.8-7.9 - COMPLETED)**
+- [x] Collapsible context section in project detail (default collapsed)
+- [x] Per-file upload progress indicator
+- [x] AI-assisted context generation with GPT-4o-mini
+- [x] 3-step wizard modal: template selection → prompt input → preview/edit
+- [x] 4 built-in templates: product_category, brand_guidelines, style_guide, custom
+- [x] Column rename: ai_service → ai_service_id, selected_service → locked_ai_service_id
+
+**I. Dynamic Pricing & Cost Management (Phase 7.10A-B - COMPLETED)**
+- [x] Database-driven pricing with `service_costs` + `pricing_coefficients` tables
+- [x] Materialized view `current_service_pricing` for fast credit lookups
+- [x] 11 service pricing tiers (4 DALL-E, 3 Flux, 3 Nano Banana, 1 GPT-4o-mini)
+- [x] DB functions: `get_credits_required()`, `refresh_pricing_cache()`
+- [x] Auto-refresh triggers on cost/coefficient changes
+- [x] Pricing operations library (`lib/pricing/operations.ts`)
+- [x] Auto-update system for Flux (monitoring) and GPT (calculated from token costs)
+- [x] Admin API: `GET /api/admin/pricing`, `POST /api/admin/pricing/auto-update`
+- [x] Public API: `POST /api/pricing/calculate-credits` (single + batch)
+- [x] `useServiceCredits` React hook with 300ms debounce
+- [x] Dynamic credit labels in sample generation form (replaces static values)
+- [x] Total cost per sample display
+- [x] Real-time credit display in fine-tuning modals
+- [x] Pricing tier hints on Flux steps slider
+- [x] Context generator shows "1 credit (fixed)"
+
 ---
 
 ### 6.2 Phase 2 Features (Months 4-6)
@@ -1378,6 +1403,12 @@ Democratizovat přístup k profesionálnímu product photography pomocí AI, a d
 **Utilities (Phase 7.6):**
 - Parameter Mapper (`lib/ai/parameter-mapper.ts`) - Maps UI settings to service-specific params
 - Prompt Builder (`lib/ai/prompt-builder.ts`) - Combines base_prompt + scene + style + background
+
+**Pricing System (Phase 7.10):**
+- Pricing Operations (`lib/pricing/operations.ts`) - getServicePricing, getCreditsRequired, getServiceId, calculateJobCredits, refreshPricingCache
+- Auto-Update (`lib/pricing/auto-update.ts`) - Flux monitoring + GPT token-based calculation
+- Types (`lib/types/pricing.ts`) - ServiceCost, PricingCoefficient, CurrentServicePricing, ServiceIdType
+- React Hook (`hooks/useServiceCredits.ts`) - Debounced credit fetching with AbortController
 
 **AI Services:**
 - OpenAI DALL-E 3 API
@@ -1656,6 +1687,55 @@ UNIQUE(project_id, ai_service)
 + project_id: uuid (FK → projects, nullable) -- vazba na projekt pro konzistenci stylu
 ```
 
+**Service Costs Table (Phase 7.10A):**
+```sql
+id: uuid (PK, DEFAULT gen_random_uuid())
+service_id: text NOT NULL -- e.g., 'dalle3_standard_square', 'flux_high', 'nano_1k'
+ai_service_id: text -- Parent AI service (e.g., 'openai_dalle3')
+cost_usd: decimal(10,6) NOT NULL -- Actual API cost in USD
+valid_from: date NOT NULL DEFAULT CURRENT_DATE
+valid_to: date -- NULL = currently active
+source: enum ('api_auto', 'manual', 'calculated') DEFAULT 'manual'
+notes: text
+created_at: timestamptz DEFAULT now()
+
+-- Unique: only one active cost per service (valid_to IS NULL)
+-- Indexes: service_id, (service_id, valid_to) for current lookups
+-- RLS: public SELECT, service_role INSERT/UPDATE
+
+-- Seed data (11 service tiers):
+-- dalle3_standard_square: $0.040, dalle3_standard_wide: $0.080
+-- dalle3_hd_square: $0.080, dalle3_hd_wide: $0.120
+-- flux_standard: $0.030, flux_high: $0.060, flux_ultra: $0.100
+-- nano_1k: $0.020, nano_2k: $0.040, nano_4k: $0.080
+-- gpt4o_mini_context: $0.000630
+```
+
+**Pricing Coefficients Table (Phase 7.10A):**
+```sql
+id: uuid (PK, DEFAULT gen_random_uuid())
+coefficient: decimal(5,2) NOT NULL DEFAULT 1.0 -- Markup multiplier
+valid_from: date NOT NULL DEFAULT CURRENT_DATE
+valid_to: date -- NULL = currently active
+name: text NOT NULL DEFAULT 'default'
+description: text
+created_at: timestamptz DEFAULT now()
+
+-- Controls global markup: user_price = cost_usd * coefficient
+-- Seed: coefficient = 1.0 (no markup for MVP)
+```
+
+**Current Service Pricing View (Phase 7.10A):**
+```sql
+-- Materialized view: current_service_pricing
+-- Joins service_costs + pricing_coefficients where valid_to IS NULL
+-- Pre-calculates: user_price_usd = cost_usd * coefficient
+-- Pre-calculates: credits_required = CEIL(user_price_usd / 0.01)
+-- Auto-refreshed via triggers on service_costs/pricing_coefficients changes
+-- Columns: service_id, ai_service_id, cost_usd, coefficient, user_price_usd,
+--   credits_required, cost_valid_from, coefficient_valid_from, source, notes
+```
+
 ---
 
 ### 7.4 API Endpoints
@@ -1912,6 +1992,18 @@ UNIQUE(project_id, ai_service)
       }
     }
     ```
+
+**Dynamic Pricing (Phase 7.10):**
+- `POST /api/pricing/calculate-credits` - Calculate credits for service(s)
+  - Single: `{ ai_service: "openai_dalle3", params: { quality: "hd", ratio: "16:9" } }`
+  - Batch: `{ services: [{ ai_service, params, count }] }`
+  - Response (single): `{ success, service_id: "dalle3_hd_wide", credits_required: 12 }`
+  - Response (batch): `{ success, total_credits, breakdown: [{ service, service_id, credits_per_image, count, subtotal }] }`
+- `GET /api/admin/pricing` - Get all current service pricing (from materialized view)
+  - Response: `{ success, pricing: [...], count }`
+- `POST /api/admin/pricing/auto-update` - Trigger pricing auto-update (bearer token auth)
+  - Header: `Authorization: Bearer <PRICING_UPDATE_SECRET>`
+  - Response: `{ success, result: { flux: "checked", gpt: "updated" } }`
 
 ---
 
@@ -2342,6 +2434,44 @@ Alternative with Nano Banana Pro:
 = 50 × 3 = 150 credits
 = $9-15 (70% cheaper!)
 ```
+
+---
+
+#### Dynamic Credit Calculation (Phase 7.10)
+
+Credits are calculated dynamically from the database rather than hardcoded values:
+
+```
+Workflow:
+1. User selects AI service + adjusts parameters (quality, steps, ratio)
+2. Frontend useServiceCredits hook fires (300ms debounce)
+3. POST /api/pricing/calculate-credits with service + params
+4. Backend maps params → ServiceIdType (e.g., "dalle3_hd_wide")
+5. Queries current_service_pricing materialized view
+6. Returns credits_required = CEIL(cost_usd × coefficient / 0.01)
+7. UI updates credit labels in real-time
+
+Price formula:
+  credits_required = CEIL(cost_usd × coefficient / credit_value)
+
+Where:
+  cost_usd     = actual API cost from service_costs table
+  coefficient  = global markup from pricing_coefficients (default: 1.0)
+  credit_value = $0.01 (1 credit = $0.01)
+
+11 Service Pricing Tiers:
+  DALL-E 3:      standard_square (4cr), standard_wide (8cr), hd_square (8cr), hd_wide (12cr)
+  Flux Pro:      standard (3cr), high (6cr), ultra (10cr)
+  Nano Banana:   1K (2cr), 2K (4cr), 4K (8cr)
+  GPT-4o-mini:   context generation (1cr, fixed)
+```
+
+**Benefits of dynamic pricing:**
+- Prices update when API costs change (no code changes needed)
+- Historical cost tracking via valid_from/valid_to periods
+- Global markup adjustable without modifying individual service costs
+- Materialized view ensures fast lookups (auto-refreshed via triggers)
+- Auto-update system monitors Replicate + calculates OpenAI costs from token pricing
 
 ---
 
@@ -2815,6 +2945,40 @@ This Month:
 - [x] Individual service timing measurement
 - [x] Console logging cleanup
 
+### Phase 7.7: Context & Fine-tuning - COMPLETED
+- [x] Context config JSONB column + project_service_configs table
+- [x] Context upload UI (reference images, text documents)
+- [x] Service fine-tuning modals (per-service advanced params)
+- [x] Service config API endpoints (CRUD)
+- [x] Context & fine-tuning applied in sample generation
+
+### Phase 7.8: DB Normalization - COMPLETED
+- [x] Renamed ai_service → ai_service_id across codebase (~16 files)
+- [x] Renamed selected_service → locked_ai_service_id
+- [x] Collapsible context section (default collapsed)
+- [x] Per-file upload progress indicator
+
+### Phase 7.9: AI Context Generation - COMPLETED
+- [x] GPT-4o-mini client with 4 templates
+- [x] /api/ai/generate-context endpoint (GET templates, POST generate)
+- [x] ContextGeneratorModal (3-step wizard)
+- [x] Integration with project context upload flow
+
+### Phase 7.10: Dynamic Pricing - COMPLETED
+- [x] service_costs table with historical cost tracking
+- [x] pricing_coefficients table with global markup multiplier
+- [x] Materialized view current_service_pricing with auto-refresh triggers
+- [x] DB functions: get_credits_required(), refresh_pricing_cache()
+- [x] Pricing operations library (getServiceId, calculateJobCredits, etc.)
+- [x] Auto-update system (Flux monitoring, GPT token calculation)
+- [x] Admin endpoints: GET /api/admin/pricing, POST /api/admin/pricing/auto-update
+- [x] POST /api/pricing/calculate-credits (single + batch mode)
+- [x] useServiceCredits React hook (300ms debounce, AbortController)
+- [x] Dynamic credit labels in sample generation form
+- [x] Total cost per sample display
+- [x] Real-time credit display in fine-tuning modals
+- [x] Context generator shows "1 credit (fixed)"
+
 ---
 
 ## 13. OPEN QUESTIONS
@@ -3001,6 +3165,49 @@ This Month:
 ---
 
 ## 14. CHANGELOG
+
+### Version 2.5 (February 13, 2026) - Phase 7.10A-B Dynamic Pricing
+
+**Phase 7.10B - Dynamic Credit Display in UI**
+- **NOVÉ:** `POST /api/pricing/calculate-credits` endpoint (single service + batch mode)
+- **NOVÉ:** `useServiceCredits` React hook with 300ms debounce and AbortController for cancellation
+- **AKTUALIZOVÁNO:** Sample generation form shows dynamic credits from pricing API (replaces static "15/10/6 credits")
+- **NOVÉ:** Total cost per sample display bar below service checkboxes
+- **NOVÉ:** Real-time credit display in ServiceFineTuningModal header (updates as params change)
+- **NOVÉ:** Pricing tier hints on Flux steps slider (High/Ultra tier indicators)
+- **AKTUALIZOVÁNO:** DALL-E HD option text updated to "higher credits" (dynamic)
+- **AKTUALIZOVÁNO:** ContextGeneratorModal shows "1 credit (fixed)" for clarity
+- **NOVÉ:** `defaultRatio` prop on ServiceFineTuningModal for accurate DALL-E pricing
+
+**Phase 7.10A - Dynamic Pricing & Cost Management System**
+- **NOVÉ:** `service_costs` table with validity periods (valid_from/valid_to) for historical cost tracking
+- **NOVÉ:** `pricing_coefficients` table for global markup multiplier (default: 1.0)
+- **NOVÉ:** `current_service_pricing` materialized view with pre-calculated credits_required
+- **NOVÉ:** DB functions: `get_credits_required(service_id, date)`, `refresh_pricing_cache()`
+- **NOVÉ:** Auto-refresh triggers on service_costs and pricing_coefficients changes
+- **NOVÉ:** Seed data: 11 service pricing tiers (4 DALL-E, 3 Flux, 3 Nano Banana, 1 GPT-4o-mini)
+- **NOVÉ:** Pricing operations library (`lib/pricing/operations.ts`): getServicePricing, getCreditsRequired, getServiceId, calculateJobCredits, refreshPricingCache
+- **NOVÉ:** ServiceIdType union type mapping AI service + params to 11 pricing tiers
+- **NOVÉ:** Auto-update system (`lib/pricing/auto-update.ts`): Flux monitoring via test prediction, GPT pricing calculated from token costs
+- **NOVÉ:** `GET /api/admin/pricing` - all current pricing from materialized view
+- **NOVÉ:** `POST /api/admin/pricing/auto-update` - trigger auto-update (bearer token auth via PRICING_UPDATE_SECRET)
+- **AKTUALIZOVÁNO:** `database.types.ts` with service_costs and pricing_coefficients table types
+- **NOVÉ:** Migration: `20260213300000_pricing_system.sql`
+
+**Phase 7.9 - AI-Assisted Context Generation**
+- **NOVÉ:** GPT-4o-mini text client (`lib/ai/openai-text.ts`) with 4 templates
+- **NOVÉ:** `/api/ai/generate-context` endpoint (GET templates, POST generate)
+- **NOVÉ:** `ContextGeneratorModal` component (3-step wizard: template → prompt → preview)
+- **NOVÉ:** "Generate with AI" button in collapsible context section
+- **NOVÉ:** Auto-upload generated text as .txt file to project context
+
+**Phase 7.8 - DB Normalization & UI Polish**
+- **AKTUALIZOVÁNO:** Renamed `ai_service` → `ai_service_id` across ~16 files (DB columns, API routes, components)
+- **AKTUALIZOVÁNO:** Renamed `selected_service` → `locked_ai_service_id` (samples table + UI)
+- **NOVÉ:** Collapsible context section in project detail (default collapsed, with summary counts)
+- **NOVÉ:** Per-file upload progress indicator in ProjectContextUpload
+
+---
 
 ### Version 2.4 (February 13, 2026) - Phase 7.7 Context & Fine-tuning
 
