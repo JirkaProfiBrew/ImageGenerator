@@ -12,11 +12,8 @@ const API_URL =
 
 export interface GoogleGenerateOptions {
   aspectRatio?: string;
-  temperature?: number;
   imageSize?: NanoBananaImageSize;
   thinkingLevel?: NanoBananaThinkingLevel;
-  topP?: number;
-  topK?: number;
   enableSearch?: boolean;
   uiStyle?: string;
   qualityLevel?: QualityLevel;
@@ -57,19 +54,17 @@ export async function generateWithNanoBananaPro(
   options?: GoogleGenerateOptions
 ): Promise<GoogleResult> {
   try {
-    let temperature = options?.temperature ?? 1.0;
     let imageSize: NanoBananaImageSize = options?.imageSize ?? "1K";
-    let thinkingLevel: NanoBananaThinkingLevel = options?.thinkingLevel ?? "minimal";
+    let thinkingLevel: NanoBananaThinkingLevel = options?.thinkingLevel ?? "high";
 
     // Auto-map from UI params if provided (and no direct params given)
     if (options?.uiStyle && options?.qualityLevel && options?.creativityLevel) {
-      if (!options.temperature && !options.imageSize && !options.thinkingLevel) {
+      if (!options.imageSize && !options.thinkingLevel) {
         const params = getNanaBananaParameters(
           options.uiStyle,
           options.qualityLevel,
           options.creativityLevel
         );
-        temperature = params.temperature;
         imageSize = params.imageSize;
         thinkingLevel = params.thinkingLevel;
       }
@@ -77,9 +72,9 @@ export async function generateWithNanoBananaPro(
 
     const refImageCount = options?.referenceImageParts?.length ?? 0;
     console.log("[Nano Banana] Generating...", {
-      temperature,
       imageSize,
       thinkingLevel,
+      aspectRatio: options?.aspectRatio || "not set",
       refImages: refImageCount,
       hasContext: !!options?.contextText,
       search: options?.enableSearch ?? false,
@@ -104,22 +99,15 @@ export async function generateWithNanoBananaPro(
       console.log(`[Nano Banana] Added ${options.referenceImageParts.length} reference images`);
     }
 
-    // Build generation config
+    // Build generation config - image generation params only
+    // Note: temperature, topP, topK are NOT used for image generation
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const generationConfig: any = {
-      temperature,
       candidateCount: 1,
       responseModalities: ["TEXT", "IMAGE"],
       imageConfig: { imageSize },
       thinkingConfig: { thinkingLevel },
     };
-
-    if (options?.topP !== undefined) {
-      generationConfig.topP = options.topP;
-    }
-    if (options?.topK !== undefined) {
-      generationConfig.topK = options.topK;
-    }
 
     // Build request body
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

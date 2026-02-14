@@ -191,6 +191,7 @@ export default function ProjectDetailPage() {
   const serviceInputs = useMemo(() => {
     const dalleConfig = serviceConfigs["openai_dalle3"];
     const fluxConfig = serviceConfigs["replicate_flux"];
+    const nanoConfig = serviceConfigs["google_nano_banana"];
 
     return [
       {
@@ -211,7 +212,7 @@ export default function ProjectDetailPage() {
       {
         ai_service: "google_nano_banana",
         params: {
-          imageSize: "1K" as const,
+          imageSize: (nanoConfig?.custom_params?.imageSize as "1K" | "2K" | "4K") || "1K",
         },
         enabled: selectedServices.nanoBanana,
       },

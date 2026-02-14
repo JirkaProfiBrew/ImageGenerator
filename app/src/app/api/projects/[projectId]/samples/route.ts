@@ -173,10 +173,17 @@ export async function POST(
 
     if (services.nanoBanana) {
       try {
-        const nanoServiceId = getServiceId("google_nano_banana", { imageSize: "1K" });
+        const nanoFinalParams = getFinalParameters(
+          serviceConfigMap["google_nano_banana"] ?? null,
+          uiStyle, qualityLevel, creativityLevel,
+          "google_nano_banana"
+        );
+        const nanoImageSize = (nanoFinalParams.imageSize as "1K" | "2K" | "4K") || "1K";
+        const nanoServiceId = getServiceId("google_nano_banana", { imageSize: nanoImageSize });
         estimatedCreditsMap["google_nano_banana"] = await getCreditsRequired(nanoServiceId);
+        console.log(`[Samples] Nano Banana estimated: ${estimatedCreditsMap["google_nano_banana"]} credits (${nanoImageSize}, tier: ${nanoServiceId})`);
       } catch {
-        estimatedCreditsMap["google_nano_banana"] = 1; // fallback
+        estimatedCreditsMap["google_nano_banana"] = 54; // fallback (1K default)
       }
     }
 
@@ -257,12 +264,8 @@ export async function POST(
             "google_nano_banana"
           );
           const result = await generateWithNanoBananaPro(fullPrompt, {
-            temperature: finalParams.temperature as number | undefined,
             imageSize: finalParams.imageSize as "1K" | "2K" | "4K" | undefined,
-            thinkingLevel: finalParams.thinkingLevel as "minimal" | "low" | "medium" | "high" | undefined,
-            topP: finalParams.topP as number | undefined,
-            topK: finalParams.topK as number | undefined,
-            enableSearch: finalParams.enable_search as boolean | undefined,
+            thinkingLevel: finalParams.thinkingLevel as "low" | "high" | undefined,
             referenceImageParts: geminiImageParts,
             contextText: documentText || undefined,
             uiStyle,

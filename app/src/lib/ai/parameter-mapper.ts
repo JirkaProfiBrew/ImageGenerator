@@ -76,49 +76,36 @@ export function getFluxProParameters(
 // ============================================
 
 export type NanoBananaImageSize = "1K" | "2K" | "4K";
-export type NanoBananaThinkingLevel = "minimal" | "low" | "medium" | "high";
+export type NanoBananaThinkingLevel = "low" | "high";
 
 export interface NanoBananaParams {
-  temperature: number;
   imageSize: NanoBananaImageSize;
   thinkingLevel: NanoBananaThinkingLevel;
 }
 
+/**
+ * Map project settings to Nano Banana Pro parameters.
+ * - quality_level -> imageSize (standard=1K, high=2K, ultra=4K)
+ * - creativity_level -> thinkingLevel (low=low, medium/high=high)
+ * Note: temperature/topP/topK are NOT used for image generation.
+ */
 export function getNanaBananaParameters(
-  uiStyle: string,
+  _uiStyle: string,
   qualityLevel: QualityLevel,
   creativityLevel: CreativityLevel
 ): NanoBananaParams {
-  const tempMap: Record<CreativityLevel, number> = {
-    low: 0.5,
-    medium: 0.9,
-    high: 1.4,
-  };
-
-  let temperature = tempMap[creativityLevel];
-
-  if (uiStyle === "realistic") {
-    temperature = Math.max(temperature - 0.2, 0.3);
-  } else if (uiStyle === "artistic") {
-    temperature = Math.min(temperature + 0.3, 1.8);
-  }
-
   const imageSizeMap: Record<QualityLevel, NanoBananaImageSize> = {
     standard: "1K",
     high: "2K",
     ultra: "4K",
   };
 
-  const thinkingMap: Record<QualityLevel, NanoBananaThinkingLevel> = {
-    standard: "minimal",
-    high: "low",
-    ultra: "medium",
-  };
+  const thinkingLevel: NanoBananaThinkingLevel =
+    creativityLevel === "low" ? "low" : "high";
 
   return {
-    temperature,
     imageSize: imageSizeMap[qualityLevel],
-    thinkingLevel: thinkingMap[qualityLevel],
+    thinkingLevel,
   };
 }
 

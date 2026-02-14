@@ -247,10 +247,8 @@ export interface FluxCustomParams {
 }
 
 export interface NanoBananaCustomParams {
-  temperature?: number; // 0.0-2.0
-  topP?: number; // 0.0-1.0
-  topK?: number;
-  enable_search?: boolean;
+  imageSize?: "1K" | "2K" | "4K";
+  thinkingLevel?: "low" | "high";
 }
 
 export interface DallECustomParams {

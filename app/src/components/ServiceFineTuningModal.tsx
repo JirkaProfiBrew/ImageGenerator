@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
@@ -55,7 +54,7 @@ export function ServiceFineTuningModal({
     } else if (service === "replicate_flux") {
       params.steps = useBasicParams ? 25 : (customParams.num_inference_steps || 25);
     } else if (service === "google_nano_banana") {
-      params.imageSize = "1K";
+      params.imageSize = useBasicParams ? "1K" : (customParams.imageSize || "1K");
     }
 
     return [{ ai_service: service, params, enabled: true }];
@@ -249,10 +248,8 @@ function getDefaults(service: AIService): Record<string, unknown> {
       };
     case "google_nano_banana":
       return {
-        temperature: 1.0,
-        topP: 0.95,
-        topK: 40,
-        enable_search: false,
+        imageSize: "1K",
+        thinkingLevel: "high",
       };
     case "openai_dalle3":
       return {
@@ -394,77 +391,153 @@ function NanoBananaParams({
 }) {
   return (
     <div className="space-y-4">
-      {/* Temperature */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium">
-          Temperature: {params.temperature ?? 1.0}
-          <span className="ml-1 text-xs text-muted-foreground">(0.0-2.0)</span>
+      {/* Image Size Selection */}
+      <div>
+        <label className="block text-sm font-medium mb-3">
+          Image Size
         </label>
-        <input
-          type="range"
-          min="0.0"
-          max="2.0"
-          step="0.1"
-          value={params.temperature ?? 1.0}
-          onChange={(e) => onChange("temperature", parseFloat(e.target.value))}
-          className="w-full accent-primary"
-        />
-        <p className="text-xs text-muted-foreground">
-          Lower = consistent, Higher = creative
-        </p>
-      </div>
+        <div className="space-y-3">
+          <label className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-muted/50 transition-colors">
+            <input
+              type="radio"
+              name="imageSize"
+              value="1K"
+              checked={!params.imageSize || params.imageSize === "1K"}
+              onChange={() => onChange("imageSize", "1K")}
+              className="mt-1 h-4 w-4"
+            />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">1K (1024x1024)</span>
+                <span className="text-sm text-muted-foreground">54 credits</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Standard resolution, smaller file size
+              </p>
+            </div>
+          </label>
 
-      {/* Top P */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium">
-          Top P: {params.topP ?? 0.95}
-          <span className="ml-1 text-xs text-muted-foreground">(0.0-1.0)</span>
-        </label>
-        <input
-          type="range"
-          min="0.0"
-          max="1.0"
-          step="0.05"
-          value={params.topP ?? 0.95}
-          onChange={(e) => onChange("topP", parseFloat(e.target.value))}
-          className="w-full accent-primary"
-        />
-        <p className="text-xs text-muted-foreground">
-          Nucleus sampling parameter
-        </p>
-      </div>
+          <label className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-muted/50 transition-colors">
+            <input
+              type="radio"
+              name="imageSize"
+              value="2K"
+              checked={params.imageSize === "2K"}
+              onChange={() => onChange("imageSize", "2K")}
+              className="mt-1 h-4 w-4"
+            />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm">2K (2048x2048)</span>
+                <span className="text-sm text-muted-foreground">54 credits</span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Better quality, same cost as 1K
+              </p>
+            </div>
+          </label>
 
-      {/* Top K */}
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Top K</label>
-        <Input
-          type="number"
-          min={1}
-          max={100}
-          value={params.topK ?? 40}
-          onChange={(e) => onChange("topK", parseInt(e.target.value) || 40)}
-        />
-        <p className="text-xs text-muted-foreground">
-          Number of top tokens to consider (1-100)
-        </p>
-      </div>
-
-      {/* Google Search */}
-      <div className="flex items-start gap-2">
-        <Checkbox
-          checked={params.enable_search ?? false}
-          onCheckedChange={(checked) =>
-            onChange("enable_search", checked === true)
-          }
-        />
-        <div>
-          <p className="text-sm font-medium leading-none">
-            Enable Google Search Grounding
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Use real-time web data for factual accuracy
-          </p>
+          <label className="flex items-start gap-3 p-3 border-2 border-orange-200 rounded cursor-pointer hover:bg-orange-50 transition-colors">
+            <input
+              type="radio"
+              name="imageSize"
+              value="4K"
+              checked={params.imageSize === "4K"}
+              onChange={() => onChange("imageSize", "4K")}
+              className="mt-1 h-4 w-4"
+            />
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-sm text-orange-900">4K (4096x4096)</span>
+                <span className="text-sm font-semibold text-orange-600">96 credits</span>
+              </div>
+              <p className="text-xs text-orange-700 mt-1">
+                Highest quality, double cost
+              </p>
+            </div>
+          </label>
         </div>
+
+        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-800">
+          <strong>Tip:</strong> 1K and 2K cost the same ($0.134/image).
+          Choose 2K for better quality unless you need smaller file sizes.
+        </div>
+      </div>
+
+      {/* Thinking Level Selection */}
+      <div>
+        <label className="block text-sm font-medium mb-3">
+          Thinking Level
+        </label>
+        <div className="space-y-2">
+          <label className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-muted/50 transition-colors">
+            <input
+              type="radio"
+              name="thinkingLevel"
+              value="low"
+              checked={params.thinkingLevel === "low"}
+              onChange={() => onChange("thinkingLevel", "low")}
+              className="mt-1 h-4 w-4"
+            />
+            <div className="flex-1">
+              <div className="font-medium text-sm">Low</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Faster generation, simple prompts
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-muted/50 transition-colors">
+            <input
+              type="radio"
+              name="thinkingLevel"
+              value="high"
+              checked={!params.thinkingLevel || params.thinkingLevel === "high"}
+              onChange={() => onChange("thinkingLevel", "high")}
+              className="mt-1 h-4 w-4"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm">High</span>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                  Recommended
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Better reasoning, complex prompts, creative interpretation
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <div className="mt-2 p-2 bg-muted/50 border rounded text-xs text-muted-foreground">
+          Thinking level affects quality and generation time, but NOT credit cost.
+        </div>
+      </div>
+
+      {/* Google Search - Coming Soon */}
+      <div className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-medium text-blue-900 text-sm">Google Search Grounding</span>
+          <span className="text-xs bg-blue-200 text-blue-800 px-2 py-0.5 rounded font-medium">
+            Coming Soon
+          </span>
+        </div>
+        <p className="text-xs text-blue-700">
+          Generate images with real-time data: weather forecasts, stock charts, current events, and more.
+        </p>
+      </div>
+
+      {/* About Nano Banana Pro */}
+      <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 space-y-1">
+        <p className="font-medium text-blue-900">About Nano Banana Pro</p>
+        <ul className="space-y-0.5">
+          <li>&#8226; Google&apos;s highest quality image generation model</li>
+          <li>&#8226; Excellent text rendering - perfect for posters, infographics</li>
+          <li>&#8226; Up to 4K resolution (4096x4096) support</li>
+          <li>&#8226; Advanced reasoning for complex, creative prompts</li>
+          <li>&#8226; Character consistency features (coming soon)</li>
+        </ul>
       </div>
     </div>
   );
